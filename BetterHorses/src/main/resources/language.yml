@@ -39,11 +39,15 @@ messages:
 
   summon:
     bound: "&aHorn bound to &e%horse%&a. Use it to call your mount."
+    rebound: "&aA new horn was bound to &e%horse%&a. Every older horn for this mount is now inactive."
     success: "&aYou called &e%horse%&a."
     failed: "&cCould not call this mount here."
     not-owner: "&cThis is not your mount."
     not-horn-owner: "&cThis horn is bound to another player."
-    not-found: "&cCould not find this mount. Its saved chunk was loaded, but the mount was not there."
+    not-found: "&cCould not find this mount. One horn use was consumed."
+    inactive-horn: "&cThis horn is no longer active. This mount is already bound to another horn."
+    no-uses: "&cThis horn has no uses left."
+    uses-depleted: "&cThe horn bound to &e%horse% &chas broken. This mount needs a new horn."
     searching: "&7Calling your mount..."
     disabled-world: "&cYou cannot call mounts in this world: &e%world%&c."
     has-passenger: "&cYou cannot call this mount while another player is riding it."
@@ -51,9 +55,13 @@ messages:
     cooldown-actionbar: "&eHorn cooldown: &f%seconds%s"
     invalid-horn: "&cThis horn cannot store mount data."
     unbound-horn: "&cThis horn is not bound to any mount."
+    already-bound-horn: "&cThis horn is already bound and cannot be bound again."
+    binding-in-progress: "&eThis mount is already being bound to a horn. Please wait."
+    binding-cancelled: "&cHorn binding was cancelled because the horn was moved or changed."
     horn-name: "&6Horn of %horse%"
     horn-lore-owner: "&7Owner: &f%player%"
     horn-lore-use: "&7Right-click to call &e%horse%&7."
+    horn-lore-uses: "&7Uses left: &e%uses%"
 
   # /horse info debug output. Available placeholders:
   # Shared horse/item PDC placeholders: %gender%, %current_health%, %health%, %speed%, %jump%, %owner%, %name%, %style%, %color%, %growth_stage%, %mount_type%, %trait%, %neutered%, %cooldown%, %saddle%, %armor%, %armor_data%, %base_health%, %base_speed%, %base_jump%, %training_riding_units%, %training_brushing_units%, %training_feeding_units%, %training_brush_cooldown%, %training_feed_cooldown%

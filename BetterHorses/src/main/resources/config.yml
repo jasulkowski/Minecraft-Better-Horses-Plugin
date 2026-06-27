@@ -275,7 +275,16 @@ horse-summon:
   require-owner: true
   prevent-call-with-player-passenger: true
   auto-mount: false
-  cooldown-seconds: 10
+
+  # Default summon cooldown for all players, in seconds.
+  # Can be overridden with permissions like betterhorses.summoncooldown.60
+  # If a player has multiple cooldown permissions, the lowest value is used.
+  cooldown-seconds: 300
+
+  # Default amount of successful/failed-not-found summon attempts per newly bound horn.
+  # Can be overridden with permissions like betterhorses.summonuses.10
+  # If a player has multiple uses permissions, the highest value is used.
+  default-uses: 5
 
   notifications:
     # Where summon-horn feedback should be shown.
@@ -298,6 +307,20 @@ horse-summon:
   # If true, the plugin reads the bound horse location from SQLite and loads
   # exactly that saved chunk asynchronously when the horse is not currently loaded.
   load-unloaded-chunk: true
+
+  # How far around the last known chunk the plugin may search if the horse is not
+  # found in the exact saved chunk. 1 means a 3x3 chunk area and is usually enough
+  # for cases where the horse crossed a chunk border before unloading.
+  unloaded-search-radius-chunks: 1
+
+  tracking:
+    # Keeps SQLite coordinates up to date for loaded bound horses.
+    # This fixes the case where a player summons a horse, rides far away, returns home
+    # by command/portal, and then calls the horse again.
+    enabled: true
+    # The plugin does NOT write to SQLite every step. It refreshes loaded bound horses
+    # only once per this interval, asynchronously.
+    update-interval-seconds: 30
 
   horn:
     material: GOAT_HORN

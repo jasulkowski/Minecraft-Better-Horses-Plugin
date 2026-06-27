@@ -11,6 +11,7 @@ import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
@@ -121,6 +122,11 @@ public final class HorseSummonListener implements Listener {
         if (summonService.isSummonHornCandidate(offHand, settings) && summonService.isBound(offHand)) {
             summonService.callBoundHorse(player, offHand, settings);
         }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        summonService.clearPlayerState(event.getPlayer().getUniqueId());
     }
 
 }

@@ -20,21 +20,24 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.Set;
 import java.util.logging.Level;
 
 /**
@@ -50,6 +53,12 @@ public final class HorseSummonService {
     private final HorseSummonRepository repository;
     private final ConcurrentMap<UUID, Long> cooldownUntilMillis = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, Long> activeCallsUntilMillis = new ConcurrentHashMap<>();
+    /**
+     * Prevents notification spam while the player keeps holding the horn use button.
+     * This does not apply a vanilla item cooldown, so the goat horn sound remains usable.
+     */
+    private final ConcurrentMap<UUID, Long> nextNotificationMillis = new ConcurrentHashMap<>();
+    private final Set<UUID> pendingHorseBindings = ConcurrentHashMap.newKeySet();
 
     public HorseSummonService(BetterHorses plugin, HorseSummonRepository repository) {
         this.plugin = plugin;
@@ -97,6 +106,10 @@ public final class HorseSummonService {
         if (!SupportedMountType.isSupported(horse)) {
             return false;
         }
+        if (isBound(horn) || hasHornIdentity(horn)) {
+            notifyAndThrottle(player, settings, "messages.summon.already-bound-horn");
+            return true;
+        }
         if (settings.requireOwner() && !isOwner(player, horse)) {
             notifyAndThrottle(player, settings, "messages.summon.not-owner");
             return true;
@@ -104,51 +117,137 @@ public final class HorseSummonService {
 
         ItemMeta meta = horn.getItemMeta();
         if (meta == null) {
-            lang.send(player, "messages.summon.invalid-horn");
+            notifyAndThrottle(player, settings, "messages.summon.invalid-horn");
+            return true;
+        }
+
+        Location location = horse.getLocation();
+        World world = location.getWorld();
+        if (world == null) {
+            notify(player, settings, "messages.summon.failed");
+            return true;
+        }
+
+        UUID horseUuid = horse.getUniqueId();
+        if (!pendingHorseBindings.add(horseUuid)) {
+            notifyAndThrottle(player, settings, "messages.summon.binding-in-progress");
             return true;
         }
 
         String horseName = resolveHorseName(horse);
+        UUID hornUuid = UUID.randomUUID();
+        int maxUses = resolveHornUses(player, settings);
+        int heldSlot = player.getInventory().getHeldItemSlot();
+        ItemStack originalHorn = horn.clone();
+
+        RegisteredSummonHorse registration = new RegisteredSummonHorse(
+                horseUuid,
+                player.getUniqueId(),
+                hornUuid,
+                maxUses,
+                horseName,
+                world.getUID(),
+                location.getX(),
+                location.getY(),
+                location.getZ()
+        );
+
+        repository.replaceActiveHornAsync(registration).whenComplete((previousRegistration, throwable) ->
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    pendingHorseBindings.remove(horseUuid);
+
+                    if (throwable != null) {
+                        plugin.getLogger().log(Level.WARNING, "Failed to register summon horn.", throwable);
+                        if (player.isOnline()) {
+                            notify(player, settings, "messages.summon.failed");
+                        }
+                        return;
+                    }
+
+                    if (!player.isOnline() || !horse.isValid() || (settings.requireOwner() && !isOwner(player, horse))) {
+                        repository.restorePreviousIfCurrentMatchesAsync(horseUuid, hornUuid, previousRegistration);
+                        return;
+                    }
+
+                    ItemStack currentHorn = player.getInventory().getItem(heldSlot);
+                    if (!isSameUnboundHorn(currentHorn, originalHorn, settings)) {
+                        repository.restorePreviousIfCurrentMatchesAsync(horseUuid, hornUuid, previousRegistration);
+                        notifyAndThrottle(player, settings, "messages.summon.binding-cancelled");
+                        return;
+                    }
+
+                    applyBoundHornData(player, horse, currentHorn, hornUuid, maxUses, horseName);
+                    horse.getPersistentDataContainer().set(HorseSummonKeys.REGISTERED_HORSE, PersistentDataType.BYTE, (byte) 1);
+
+                    player.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, horse.getLocation().add(0.0D, 1.0D, 0.0D), 12, 0.35D, 0.35D, 0.35D, 0.01D);
+                    String messageKey = previousRegistration.isPresent()
+                            ? "messages.summon.rebound"
+                            : "messages.summon.bound";
+                    lang.sendFormatted(player, messageKey, "%horse%", horseName);
+                    plugin.debugLog("HORSE_SUMMON", "BIND", true,
+                            "Bound horn " + hornUuid + " of " + player.getName() + " to horse " + horseUuid
+                                    + (previousRegistration.isPresent() ? ", replacing the previous active horn." : "."));
+                })
+        );
+        return true;
+    }
+
+    private void applyBoundHornData(
+            Player player,
+            AbstractHorse horse,
+            ItemStack horn,
+            UUID hornUuid,
+            int maxUses,
+            String horseName
+    ) {
+        ItemMeta meta = horn.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+
         Location location = horse.getLocation();
-        if (location.getWorld() == null) {
-            notify(player, settings, "messages.summon.failed");
-            return true;
+        World world = location.getWorld();
+        if (world == null) {
+            return;
         }
 
         PersistentDataContainer data = meta.getPersistentDataContainer();
         data.set(HorseSummonKeys.BOUND_HORSE_UUID, PersistentDataType.STRING, horse.getUniqueId().toString());
         data.set(HorseSummonKeys.BOUND_OWNER_UUID, PersistentDataType.STRING, player.getUniqueId().toString());
+        data.set(HorseSummonKeys.HORN_UUID, PersistentDataType.STRING, hornUuid.toString());
+        data.set(HorseSummonKeys.USES_REMAINING, PersistentDataType.INTEGER, maxUses);
         data.set(HorseSummonKeys.BOUND_HORSE_NAME, PersistentDataType.STRING, horseName);
-        data.set(HorseSummonKeys.LAST_WORLD, PersistentDataType.STRING, location.getWorld().getUID().toString());
+        data.set(HorseSummonKeys.LAST_WORLD, PersistentDataType.STRING, world.getUID().toString());
         data.set(HorseSummonKeys.LAST_X, PersistentDataType.DOUBLE, location.getX());
         data.set(HorseSummonKeys.LAST_Y, PersistentDataType.DOUBLE, location.getY());
         data.set(HorseSummonKeys.LAST_Z, PersistentDataType.DOUBLE, location.getZ());
 
         meta.setDisplayName(lang.getFormattedRaw(player, "messages.summon.horn-name", "%horse%", horseName));
-        meta.setLore(List.of(
-                lang.getFormattedRaw(player, "messages.summon.horn-lore-owner", "%player%", player.getName()),
-                lang.getFormattedRaw(player, "messages.summon.horn-lore-use", "%horse%", horseName)
-        ));
+        meta.setLore(buildHornLore(player, horseName, maxUses));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         horn.setItemMeta(meta);
+    }
 
-        horse.getPersistentDataContainer().set(HorseSummonKeys.REGISTERED_HORSE, PersistentDataType.BYTE, (byte) 1);
-        saveRegisteredHorseAsync(horse, player.getUniqueId(), horseName);
+    private boolean isSameUnboundHorn(ItemStack currentHorn, ItemStack originalHorn, HorseSummonSettings settings) {
+        return currentHorn != null
+                && currentHorn.getAmount() == originalHorn.getAmount()
+                && currentHorn.isSimilar(originalHorn)
+                && isSummonHornCandidate(currentHorn, settings)
+                && !isBound(currentHorn)
+                && !hasHornIdentity(currentHorn);
+    }
 
-        player.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, horse.getLocation().add(0.0D, 1.0D, 0.0D), 12, 0.35D, 0.35D, 0.35D, 0.01D);
-        lang.sendFormatted(player, "messages.summon.bound", "%horse%", horseName);
-        plugin.debugLog("HORSE_SUMMON", "BIND", true, "Bound horn of " + player.getName() + " to horse " + horse.getUniqueId() + ".");
-        return true;
+    private boolean hasHornIdentity(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) {
+            return false;
+        }
+        return item.getItemMeta().getPersistentDataContainer().has(HorseSummonKeys.HORN_UUID, PersistentDataType.STRING);
     }
 
     public void callBoundHorse(Player player, ItemStack horn, HorseSummonSettings settings) {
         if (!settings.enabled()) {
             return;
         }
-        if (player.hasCooldown(settings.hornMaterial())) {
-            return;
-        }
-
         Optional<BoundHornData> maybeData = readBoundData(horn);
         if (maybeData.isEmpty()) {
             notifyAndThrottle(player, settings, "messages.summon.unbound-horn");
@@ -158,6 +257,11 @@ public final class HorseSummonService {
         BoundHornData data = maybeData.get();
         if (settings.requireOwner() && !data.ownerUuid().equals(player.getUniqueId())) {
             notifyAndThrottle(player, settings, "messages.summon.not-horn-owner");
+            return;
+        }
+
+        if (data.usesRemaining() <= 0) {
+            notifyAndThrottle(player, settings, "messages.summon.no-uses");
             return;
         }
 
@@ -171,7 +275,6 @@ public final class HorseSummonService {
         if (availableAt > now) {
             long remainingSeconds = Math.max(1L, (availableAt - now + 999L) / 1000L);
             sendCooldown(player, settings, remainingSeconds);
-            applyHornItemCooldown(player, settings, (int) Math.min(Integer.MAX_VALUE, remainingSeconds * 20L));
             return;
         }
 
@@ -181,21 +284,25 @@ public final class HorseSummonService {
             return;
         }
         activeCallsUntilMillis.put(player.getUniqueId(), now + 3000L);
-        applyHornItemCooldown(player, settings, Math.max(5, settings.failedUseCooldownTicks()));
 
         playHornFeedback(player);
         notify(player, settings, "messages.summon.searching");
 
-        findHorse(data, settings).thenAccept(maybeHorse -> Bukkit.getScheduler().runTask(plugin, () -> {
+        findHorse(data, settings).thenAccept(result -> Bukkit.getScheduler().runTask(plugin, () -> {
             activeCallsUntilMillis.remove(player.getUniqueId());
             if (!player.isOnline()) {
                 return;
             }
-            if (maybeHorse.isEmpty()) {
+            if (result.inactiveHorn()) {
+                notify(player, settings, "messages.summon.inactive-horn");
+                return;
+            }
+            if (result.horse().isEmpty()) {
+                consumeUse(player, horn, data, settings);
                 notify(player, settings, "messages.summon.not-found");
                 return;
             }
-            summonHorse(player, maybeHorse.get(), horn, settings);
+            summonHorse(player, result.horse().get(), horn, data, settings);
         })).exceptionally(throwable -> {
             activeCallsUntilMillis.remove(player.getUniqueId());
             plugin.getLogger().log(Level.WARNING, "Failed to call summon horse.", throwable);
@@ -233,36 +340,113 @@ public final class HorseSummonService {
         repository.deleteAsync(horse.getUniqueId());
     }
 
-    private CompletableFuture<Optional<AbstractHorse>> findHorse(BoundHornData hornData, HorseSummonSettings settings) {
-        Entity loadedEntity = Bukkit.getEntity(hornData.horseUuid());
-        if (loadedEntity instanceof AbstractHorse loadedHorse) {
-            updateRegisteredHorseLocationAsync(loadedHorse);
-            return CompletableFuture.completedFuture(Optional.of(loadedHorse));
-        }
+    public void clearPlayerState(UUID playerUuid) {
+        cooldownUntilMillis.remove(playerUuid);
+        activeCallsUntilMillis.remove(playerUuid);
+        nextNotificationMillis.remove(playerUuid);
+    }
 
-        if (!settings.loadUnloadedChunk()) {
-            return CompletableFuture.completedFuture(Optional.empty());
+    /**
+     * Refreshes last known locations for all loaded summon-registered horses.
+     *
+     * <p>This method must be called on the Bukkit main thread because it reads
+     * worlds and entities. SQLite writes are still delegated to the repository
+     * executor by {@link #updateRegisteredHorseLocationAsync(AbstractHorse)}.</p>
+     */
+    public void refreshLoadedRegisteredHorseLocations() {
+        for (World world : Bukkit.getWorlds()) {
+            for (AbstractHorse horse : world.getEntitiesByClass(AbstractHorse.class)) {
+                updateRegisteredHorseLocationAsync(horse);
+            }
         }
+    }
 
+    private CompletableFuture<SummonLookupResult> findHorse(BoundHornData hornData, HorseSummonSettings settings) {
         return repository.findByHorseUuidAsync(hornData.horseUuid())
-                .thenCompose(maybeRegistered -> {
-                    RegisteredSummonHorse registered = maybeRegistered.orElseGet(() -> fromHornData(hornData));
-                    return loadHorseChunkAndResolve(registered);
-                })
+                .thenCompose(maybeRegistered -> resolveHorseOnMainThread(hornData, maybeRegistered, settings))
                 .exceptionally(throwable -> {
                     plugin.getLogger().log(Level.WARNING, "Failed to resolve summon horse from SQLite.", throwable);
-                    return Optional.empty();
+                    return SummonLookupResult.notFound();
                 });
     }
 
-    private CompletableFuture<Optional<AbstractHorse>> loadHorseChunkAndResolve(RegisteredSummonHorse registered) {
+    /**
+     * Switches from the SQLite worker back to the Bukkit main thread before touching
+     * worlds, chunks or entities.
+     */
+    private CompletableFuture<SummonLookupResult> resolveHorseOnMainThread(
+            BoundHornData hornData,
+            Optional<RegisteredSummonHorse> maybeRegistered,
+            HorseSummonSettings settings
+    ) {
+        CompletableFuture<SummonLookupResult> result = new CompletableFuture<>();
+
+        Runnable resolver = () -> {
+            try {
+                if (maybeRegistered.isEmpty()) {
+                    result.complete(SummonLookupResult.inactive());
+                    return;
+                }
+
+                RegisteredSummonHorse registered = maybeRegistered.get();
+                if (registered.hornUuid() == null || !registered.hornUuid().equals(hornData.hornUuid())) {
+                    result.complete(SummonLookupResult.inactive());
+                    return;
+                }
+
+                Entity loadedEntity = Bukkit.getEntity(hornData.horseUuid());
+                if (loadedEntity instanceof AbstractHorse loadedHorse && loadedHorse.isValid()) {
+                    updateRegisteredHorseLocationAsync(loadedHorse);
+                    result.complete(SummonLookupResult.found(loadedHorse));
+                    return;
+                }
+
+                if (!settings.loadUnloadedChunk()) {
+                    result.complete(SummonLookupResult.notFound());
+                    return;
+                }
+
+                loadHorseChunkAndResolve(registered, settings).whenComplete((horse, throwable) -> {
+                    if (throwable != null) {
+                        result.completeExceptionally(throwable);
+                        return;
+                    }
+                    result.complete(SummonLookupResult.fromHorse(horse));
+                });
+            } catch (Throwable throwable) {
+                result.completeExceptionally(throwable);
+            }
+        };
+
+        if (Bukkit.isPrimaryThread()) {
+            resolver.run();
+        } else {
+            Bukkit.getScheduler().runTask(plugin, resolver);
+        }
+        return result;
+    }
+
+    private CompletableFuture<Optional<AbstractHorse>> loadHorseChunkAndResolve(RegisteredSummonHorse registered, HorseSummonSettings settings) {
         World world = Bukkit.getWorld(registered.worldUuid());
         if (world == null) {
             return CompletableFuture.completedFuture(Optional.empty());
         }
 
-        int chunkX = ((int) Math.floor(registered.x())) >> 4;
-        int chunkZ = ((int) Math.floor(registered.z())) >> 4;
+        int originChunkX = ((int) Math.floor(registered.x())) >> 4;
+        int originChunkZ = ((int) Math.floor(registered.z())) >> 4;
+        int radius = settings.unloadedSearchRadiusChunks();
+        List<int[]> chunksToCheck = buildChunkSearchOrder(originChunkX, originChunkZ, radius);
+        return loadChunksAndResolveSequentially(world, registered.horseUuid(), chunksToCheck, 0);
+    }
+
+    private CompletableFuture<Optional<AbstractHorse>> loadChunksAndResolveSequentially(World world, UUID horseUuid, List<int[]> chunksToCheck, int index) {
+        if (index >= chunksToCheck.size()) {
+            return CompletableFuture.completedFuture(Optional.empty());
+        }
+
+        int[] chunkCoordinates = chunksToCheck.get(index);
+        int chunkX = chunkCoordinates[0];
+        int chunkZ = chunkCoordinates[1];
 
         CompletableFuture<Optional<AbstractHorse>> result = new CompletableFuture<>();
 
@@ -274,20 +458,48 @@ public final class HorseSummonService {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     if (throwable != null || chunk == null) {
                         plugin.getLogger().warning("Failed to load summon horse chunk: " + (throwable == null ? "chunk is null" : throwable.getMessage()));
-                        result.complete(Optional.empty());
+                        loadChunksAndResolveSequentially(world, horseUuid, chunksToCheck, index + 1)
+                                .whenComplete((resolved, nestedThrowable) -> completeResolvedHorse(result, resolved, nestedThrowable));
                         return;
                     }
 
-                    Optional<AbstractHorse> resolved = resolveLoadedHorseByUuid(registered.horseUuid(), chunk);
+                    Optional<AbstractHorse> resolved = resolveLoadedHorseByUuid(horseUuid, chunk);
                     if (resolved.isPresent()) {
+                        updateRegisteredHorseLocationAsync(resolved.get());
                         result.complete(resolved);
                         return;
                     }
 
-                    result.complete(Optional.empty());
+                    loadChunksAndResolveSequentially(world, horseUuid, chunksToCheck, index + 1)
+                            .whenComplete((nestedResolved, nestedThrowable) -> completeResolvedHorse(result, nestedResolved, nestedThrowable));
                 })
         );
         return result;
+    }
+
+    private void completeResolvedHorse(CompletableFuture<Optional<AbstractHorse>> result, Optional<AbstractHorse> resolved, Throwable throwable) {
+        if (throwable != null) {
+            result.completeExceptionally(throwable);
+            return;
+        }
+        result.complete(resolved == null ? Optional.empty() : resolved);
+    }
+
+    private List<int[]> buildChunkSearchOrder(int originChunkX, int originChunkZ, int radius) {
+        List<int[]> chunks = new ArrayList<>();
+        chunks.add(new int[]{originChunkX, originChunkZ});
+
+        for (int currentRadius = 1; currentRadius <= radius; currentRadius++) {
+            for (int dx = -currentRadius; dx <= currentRadius; dx++) {
+                for (int dz = -currentRadius; dz <= currentRadius; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != currentRadius) {
+                        continue;
+                    }
+                    chunks.add(new int[]{originChunkX + dx, originChunkZ + dz});
+                }
+            }
+        }
+        return chunks;
     }
 
     private Optional<AbstractHorse> resolveLoadedHorseByUuid(UUID horseUuid, Chunk chunk) {
@@ -304,7 +516,7 @@ public final class HorseSummonService {
         return Optional.empty();
     }
 
-    private void summonHorse(Player player, AbstractHorse horse, ItemStack horn, HorseSummonSettings settings) {
+    private void summonHorse(Player player, AbstractHorse horse, ItemStack horn, BoundHornData data, HorseSummonSettings settings) {
         if (settings.preventCallWithPlayerPassenger() && hasPlayerPassenger(horse)) {
             notifyAndThrottle(player, settings, "messages.summon.has-passenger");
             return;
@@ -328,6 +540,7 @@ public final class HorseSummonService {
         TrainingManager.recalculateAndApplyBonuses(horse);
         updateLastKnownLocation(horn, horse.getLocation());
         updateRegisteredHorseLocationAsync(horse);
+        consumeUse(player, horn, data, settings);
         applyCooldown(player, settings);
 
         from.getWorld().spawnParticle(Particle.CLOUD, from.add(0.0D, 0.6D, 0.0D), 16, 0.45D, 0.35D, 0.45D, 0.02D);
@@ -346,7 +559,7 @@ public final class HorseSummonService {
         plugin.debugLog("HORSE_SUMMON", "CALL", true, "Player " + player.getName() + " called horse " + horse.getUniqueId() + ".");
     }
 
-    private void saveRegisteredHorseAsync(AbstractHorse horse, UUID ownerUuid, String horseName) {
+    private void saveRegisteredHorseAsync(AbstractHorse horse, UUID ownerUuid, UUID hornUuid, int usesRemaining, String horseName) {
         Location location = horse.getLocation();
         World world = location.getWorld();
         if (world == null) {
@@ -355,6 +568,8 @@ public final class HorseSummonService {
         repository.saveAsync(new RegisteredSummonHorse(
                 horse.getUniqueId(),
                 ownerUuid,
+                hornUuid,
+                usesRemaining,
                 horseName,
                 world.getUID(),
                 location.getX(),
@@ -367,6 +582,8 @@ public final class HorseSummonService {
         return new RegisteredSummonHorse(
                 data.horseUuid(),
                 data.ownerUuid(),
+                data.hornUuid(),
+                data.usesRemaining(),
                 data.horseName(),
                 data.lastWorldUuid(),
                 data.lastX(),
@@ -376,20 +593,213 @@ public final class HorseSummonService {
     }
 
     private void applyCooldown(Player player, HorseSummonSettings settings) {
-        if (settings.cooldownSeconds() <= 0) {
+        int cooldownSeconds = resolveCooldownSeconds(player, settings);
+        if (cooldownSeconds <= 0) {
             return;
         }
-        cooldownUntilMillis.put(player.getUniqueId(), System.currentTimeMillis() + settings.cooldownSeconds() * 1000L);
-        applyHornItemCooldown(player, settings, settings.cooldownSeconds() * 20);
+        cooldownUntilMillis.put(player.getUniqueId(), System.currentTimeMillis() + cooldownSeconds * 1000L);
+    }
+
+    /**
+     * Resolves the player's summon cooldown. The default value comes from config.yml.
+     * A permission in the format betterhorses.summoncooldown.<seconds> overrides it.
+     * If the player has multiple such permissions, the lowest value is used because it is the most beneficial.
+     */
+    private int resolveCooldownSeconds(Player player, HorseSummonSettings settings) {
+        int resolved = settings.cooldownSeconds();
+        final String prefix = "betterhorses.summoncooldown.";
+
+        for (PermissionAttachmentInfo permissionInfo : player.getEffectivePermissions()) {
+            if (!permissionInfo.getValue()) {
+                continue;
+            }
+
+            String permission = permissionInfo.getPermission().toLowerCase(Locale.ROOT);
+            if (!permission.startsWith(prefix)) {
+                continue;
+            }
+
+            String rawSeconds = permission.substring(prefix.length());
+            try {
+                int seconds = Integer.parseInt(rawSeconds);
+                if (seconds < 0) {
+                    continue;
+                }
+                resolved = Math.min(resolved, seconds);
+            } catch (NumberFormatException ignored) {
+                // Ignore malformed permissions like betterhorses.summoncooldown.vip.
+            }
+        }
+
+        return resolved;
+    }
+
+    /**
+     * Resolves maximum uses for a newly-bound horn.
+     * A permission in the format betterhorses.summonuses.<amount> overrides the config value.
+     * If the player has multiple such permissions, the highest value is used.
+     */
+    private int resolveHornUses(Player player, HorseSummonSettings settings) {
+        int resolved = settings.defaultHornUses();
+        final String prefix = "betterhorses.summonuses.";
+
+        for (PermissionAttachmentInfo permissionInfo : player.getEffectivePermissions()) {
+            if (!permissionInfo.getValue()) {
+                continue;
+            }
+
+            String permission = permissionInfo.getPermission().toLowerCase(Locale.ROOT);
+            if (!permission.startsWith(prefix)) {
+                continue;
+            }
+
+            String rawUses = permission.substring(prefix.length());
+            try {
+                int uses = Integer.parseInt(rawUses);
+                if (uses <= 0) {
+                    continue;
+                }
+                resolved = Math.max(resolved, uses);
+            } catch (NumberFormatException ignored) {
+                // Ignore malformed permissions like betterhorses.summonuses.vip.
+            }
+        }
+
+        return Math.max(1, resolved);
+    }
+
+    private List<String> buildHornLore(Player player, String horseName, int usesRemaining) {
+        return List.of(
+                lang.getFormattedRaw(player, "messages.summon.horn-lore-owner", "%player%", player.getName()),
+                lang.getFormattedRaw(player, "messages.summon.horn-lore-use", "%horse%", horseName),
+                lang.getFormattedRaw(player, "messages.summon.horn-lore-uses", "%uses%", usesRemaining)
+        );
+    }
+
+    private void consumeUse(Player player, ItemStack horn, BoundHornData data, HorseSummonSettings settings) {
+        int remaining = Math.max(0, data.usesRemaining() - 1);
+
+        if (remaining > 0) {
+            updateHornUses(player, horn, data.hornUuid(), data.horseName(), remaining);
+            repository.updateUsesAsync(data.horseUuid(), data.hornUuid(), remaining);
+            return;
+        }
+
+        // The final charge destroys the exact horn that was used. The lookup is based
+        // on the horn UUID, so moving it to another inventory slot during an async
+        // horse lookup cannot preserve or duplicate the exhausted horn.
+        removeHornFromInventory(player, data.hornUuid());
+        repository.deleteIfHornMatchesAsync(data.horseUuid(), data.hornUuid());
+        clearLoadedHorseRegistration(data.horseUuid());
+        notify(player, settings, "messages.summon.uses-depleted", "%horse%", data.horseName());
+    }
+
+    private void updateHornUses(
+            Player player,
+            ItemStack originalHorn,
+            UUID hornUuid,
+            String horseName,
+            int usesRemaining
+    ) {
+        ItemStack horn = findHornInInventory(player, hornUuid).orElse(originalHorn);
+        if (!hasHornUuid(horn, hornUuid)) {
+            return;
+        }
+
+        ItemMeta meta = horn.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+        meta.getPersistentDataContainer().set(HorseSummonKeys.USES_REMAINING, PersistentDataType.INTEGER, usesRemaining);
+        meta.setLore(buildHornLore(player, horseName, usesRemaining));
+        horn.setItemMeta(meta);
+    }
+
+    /**
+     * Removes one exact bound horn from the player's hands or storage inventory.
+     * Armor slots are intentionally ignored.
+     */
+    private boolean removeHornFromInventory(Player player, UUID hornUuid) {
+        PlayerInventory inventory = player.getInventory();
+
+        ItemStack mainHand = inventory.getItemInMainHand();
+        if (hasHornUuid(mainHand, hornUuid)) {
+            inventory.setItemInMainHand(new ItemStack(Material.AIR));
+            return true;
+        }
+
+        ItemStack offHand = inventory.getItemInOffHand();
+        if (hasHornUuid(offHand, hornUuid)) {
+            inventory.setItemInOffHand(new ItemStack(Material.AIR));
+            return true;
+        }
+
+        for (int slot = 0; slot < inventory.getStorageContents().length; slot++) {
+            ItemStack item = inventory.getItem(slot);
+            if (!hasHornUuid(item, hornUuid)) {
+                continue;
+            }
+            inventory.setItem(slot, new ItemStack(Material.AIR));
+            return true;
+        }
+        return false;
+    }
+
+    private Optional<ItemStack> findHornInInventory(Player player, UUID hornUuid) {
+        PlayerInventory inventory = player.getInventory();
+
+        ItemStack mainHand = inventory.getItemInMainHand();
+        if (hasHornUuid(mainHand, hornUuid)) {
+            return Optional.of(mainHand);
+        }
+
+        ItemStack offHand = inventory.getItemInOffHand();
+        if (hasHornUuid(offHand, hornUuid)) {
+            return Optional.of(offHand);
+        }
+
+        for (int slot = 0; slot < inventory.getStorageContents().length; slot++) {
+            ItemStack item = inventory.getItem(slot);
+            if (hasHornUuid(item, hornUuid)) {
+                return Optional.of(item);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private boolean hasHornUuid(ItemStack item, UUID hornUuid) {
+        if (item == null || item.getType() == Material.AIR || !item.hasItemMeta()) {
+            return false;
+        }
+        String storedUuid = item.getItemMeta().getPersistentDataContainer()
+                .get(HorseSummonKeys.HORN_UUID, PersistentDataType.STRING);
+        return hornUuid.toString().equals(storedUuid);
+    }
+
+    private void clearLoadedHorseRegistration(UUID horseUuid) {
+        Entity entity = Bukkit.getEntity(horseUuid);
+        if (!(entity instanceof AbstractHorse horse)) {
+            return;
+        }
+        horse.getPersistentDataContainer().remove(HorseSummonKeys.REGISTERED_HORSE);
     }
 
     private void sendCooldown(Player player, HorseSummonSettings settings, long remainingSeconds) {
-        notify(player, settings, "messages.summon.cooldown", "%seconds%", remainingSeconds);
+        notifyAndThrottle(player, settings, "messages.summon.cooldown", "%seconds%", remainingSeconds);
     }
 
     private void notifyAndThrottle(Player player, HorseSummonSettings settings, String key, Object... replacements) {
+        long now = System.currentTimeMillis();
+        long allowedAt = nextNotificationMillis.getOrDefault(player.getUniqueId(), 0L);
+        if (allowedAt > now) {
+            return;
+        }
+
+        long throttleMillis = Math.max(0, settings.failedUseCooldownTicks()) * 50L;
+        if (throttleMillis > 0) {
+            nextNotificationMillis.put(player.getUniqueId(), now + throttleMillis);
+        }
         notify(player, settings, key, replacements);
-        applyHornItemCooldown(player, settings, settings.failedUseCooldownTicks());
     }
 
     private void notify(Player player, HorseSummonSettings settings, String key, Object... replacements) {
@@ -403,12 +813,6 @@ public final class HorseSummonService {
         }
     }
 
-    private void applyHornItemCooldown(Player player, HorseSummonSettings settings, int ticks) {
-        if (ticks <= 0) {
-            return;
-        }
-        player.setCooldown(settings.hornMaterial(), ticks);
-    }
 
     private void updateLastKnownLocation(ItemStack horn, Location location) {
         ItemMeta meta = horn.getItemMeta();
@@ -431,12 +835,14 @@ public final class HorseSummonService {
         PersistentDataContainer data = horn.getItemMeta().getPersistentDataContainer();
         String horseUuidRaw = data.get(HorseSummonKeys.BOUND_HORSE_UUID, PersistentDataType.STRING);
         String ownerUuidRaw = data.get(HorseSummonKeys.BOUND_OWNER_UUID, PersistentDataType.STRING);
+        String hornUuidRaw = data.get(HorseSummonKeys.HORN_UUID, PersistentDataType.STRING);
+        Integer usesRemaining = data.get(HorseSummonKeys.USES_REMAINING, PersistentDataType.INTEGER);
         String worldUuidRaw = data.get(HorseSummonKeys.LAST_WORLD, PersistentDataType.STRING);
         Double x = data.get(HorseSummonKeys.LAST_X, PersistentDataType.DOUBLE);
         Double y = data.get(HorseSummonKeys.LAST_Y, PersistentDataType.DOUBLE);
         Double z = data.get(HorseSummonKeys.LAST_Z, PersistentDataType.DOUBLE);
 
-        if (horseUuidRaw == null || ownerUuidRaw == null || worldUuidRaw == null || x == null || y == null || z == null) {
+        if (horseUuidRaw == null || ownerUuidRaw == null || hornUuidRaw == null || usesRemaining == null || worldUuidRaw == null || x == null || y == null || z == null) {
             return Optional.empty();
         }
 
@@ -445,7 +851,9 @@ public final class HorseSummonService {
             return Optional.of(new BoundHornData(
                     UUID.fromString(horseUuidRaw),
                     UUID.fromString(ownerUuidRaw),
+                    UUID.fromString(hornUuidRaw),
                     horseName,
+                    usesRemaining,
                     UUID.fromString(worldUuidRaw),
                     x,
                     y,
@@ -537,5 +945,24 @@ public final class HorseSummonService {
 
     private void playHornFeedback(Player player) {
         player.getWorld().playSound(player.getLocation(), "item.goat_horn.sound.0", SoundCategory.PLAYERS, 1.0F, 1.0F);
+    }
+
+
+    private record SummonLookupResult(Optional<AbstractHorse> horse, boolean inactiveHorn) {
+        private static SummonLookupResult found(AbstractHorse horse) {
+            return new SummonLookupResult(Optional.of(horse), false);
+        }
+
+        private static SummonLookupResult notFound() {
+            return new SummonLookupResult(Optional.empty(), false);
+        }
+
+        private static SummonLookupResult inactive() {
+            return new SummonLookupResult(Optional.empty(), true);
+        }
+
+        private static SummonLookupResult fromHorse(Optional<AbstractHorse> horse) {
+            return new SummonLookupResult(horse, false);
+        }
     }
 }

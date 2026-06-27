@@ -28,6 +28,8 @@ public final class HorseSummonRepository implements AutoCloseable {
             CREATE TABLE IF NOT EXISTS summon_horses (
                 horse_uuid TEXT PRIMARY KEY,
                 owner_uuid TEXT NOT NULL,
+                horn_uuid TEXT,
+                uses_remaining INTEGER NOT NULL DEFAULT 5,
                 horse_name TEXT NOT NULL,
                 world_uuid TEXT NOT NULL,
                 x REAL NOT NULL,
@@ -39,10 +41,12 @@ public final class HorseSummonRepository implements AutoCloseable {
             """;
 
     private static final String UPSERT_SQL = """
-            INSERT INTO summon_horses (horse_uuid, owner_uuid, horse_name, world_uuid, x, y, z, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO summon_horses (horse_uuid, owner_uuid, horn_uuid, uses_remaining, horse_name, world_uuid, x, y, z, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(horse_uuid) DO UPDATE SET
                 owner_uuid = excluded.owner_uuid,
+                horn_uuid = excluded.horn_uuid,
+                uses_remaining = excluded.uses_remaining,
                 horse_name = excluded.horse_name,
                 world_uuid = excluded.world_uuid,
                 x = excluded.x,
@@ -58,7 +62,7 @@ public final class HorseSummonRepository implements AutoCloseable {
             """;
 
     private static final String FIND_BY_HORSE_SQL = """
-            SELECT horse_uuid, owner_uuid, horse_name, world_uuid, x, y, z
+            SELECT horse_uuid, owner_uuid, horn_uuid, uses_remaining, horse_name, world_uuid, x, y, z
             FROM summon_horses
             WHERE horse_uuid = ?
             """;
@@ -91,24 +95,79 @@ public final class HorseSummonRepository implements AutoCloseable {
 
             try (Connection connection = openConnection(); Statement statement = connection.createStatement()) {
                 statement.execute(CREATE_TABLE_SQL);
+                addColumnIfMissing(connection, "horn_uuid", "TEXT");
+                addColumnIfMissing(connection, "uses_remaining", "INTEGER NOT NULL DEFAULT 5");
             }
         });
     }
 
     public CompletableFuture<Void> saveAsync(RegisteredSummonHorse horse) {
         return runAsync(() -> {
-            long now = System.currentTimeMillis();
-            try (Connection connection = openConnection(); PreparedStatement statement = connection.prepareStatement(UPSERT_SQL)) {
-                statement.setString(1, horse.horseUuid().toString());
-                statement.setString(2, horse.ownerUuid().toString());
-                statement.setString(3, horse.horseName());
-                statement.setString(4, horse.worldUuid().toString());
-                statement.setDouble(5, horse.x());
-                statement.setDouble(6, horse.y());
-                statement.setDouble(7, horse.z());
-                statement.setLong(8, now);
-                statement.setLong(9, now);
-                statement.executeUpdate();
+            try (Connection connection = openConnection()) {
+                save(connection, horse);
+            }
+        });
+    }
+
+
+    /**
+     * Atomically replaces the currently active horn for a horse and returns the previous
+     * registration, if one existed.
+     *
+     * <p>The table keeps one active horn per horse. Binding a new horn therefore invalidates
+     * every older physical horn for that horse without requiring the old item to still exist.</p>
+     */
+    public CompletableFuture<Optional<RegisteredSummonHorse>> replaceActiveHornAsync(RegisteredSummonHorse horse) {
+        return supplyAsync(() -> {
+            try (Connection connection = openConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    Optional<RegisteredSummonHorse> previous = findByHorseUuid(connection, horse.horseUuid());
+                    save(connection, horse);
+                    connection.commit();
+                    return previous;
+                } catch (SQLException exception) {
+                    connection.rollback();
+                    throw exception;
+                } finally {
+                    connection.setAutoCommit(true);
+                }
+            }
+        });
+    }
+
+    /**
+     * Restores the previous active-horn registration only when the row still belongs to the
+     * newly-bound horn. This prevents a late rollback from overwriting a newer successful bind.
+     */
+    public CompletableFuture<Void> restorePreviousIfCurrentMatchesAsync(
+            UUID horseUuid,
+            UUID currentHornUuid,
+            Optional<RegisteredSummonHorse> previous
+    ) {
+        return runAsync(() -> {
+            try (Connection connection = openConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    Optional<RegisteredSummonHorse> current = findByHorseUuid(connection, horseUuid);
+                    if (current.isPresent() && current.get().hornUuid() != null
+                            && current.get().hornUuid().equals(currentHornUuid)) {
+                        if (previous.isPresent()) {
+                            save(connection, previous.get());
+                        } else {
+                            try (PreparedStatement statement = connection.prepareStatement(DELETE_SQL)) {
+                                statement.setString(1, horseUuid.toString());
+                                statement.executeUpdate();
+                            }
+                        }
+                    }
+                    connection.commit();
+                } catch (SQLException exception) {
+                    connection.rollback();
+                    throw exception;
+                } finally {
+                    connection.setAutoCommit(true);
+                }
             }
         });
     }
@@ -135,9 +194,12 @@ public final class HorseSummonRepository implements AutoCloseable {
                     if (!resultSet.next()) {
                         return Optional.empty();
                     }
+                    String hornUuidRaw = resultSet.getString("horn_uuid");
                     return Optional.of(new RegisteredSummonHorse(
                             UUID.fromString(resultSet.getString("horse_uuid")),
                             UUID.fromString(resultSet.getString("owner_uuid")),
+                            hornUuidRaw == null ? null : UUID.fromString(hornUuidRaw),
+                            resultSet.getInt("uses_remaining"),
                             resultSet.getString("horse_name"),
                             UUID.fromString(resultSet.getString("world_uuid")),
                             resultSet.getDouble("x"),
@@ -156,6 +218,82 @@ public final class HorseSummonRepository implements AutoCloseable {
                 statement.executeUpdate();
             }
         });
+    }
+
+    public CompletableFuture<Void> updateUsesAsync(UUID horseUuid, UUID hornUuid, int usesRemaining) {
+        return runAsync(() -> {
+            try (Connection connection = openConnection(); PreparedStatement statement = connection.prepareStatement(
+                    "UPDATE summon_horses SET uses_remaining = ?, updated_at = ? WHERE horse_uuid = ? AND horn_uuid = ?")) {
+                statement.setInt(1, usesRemaining);
+                statement.setLong(2, System.currentTimeMillis());
+                statement.setString(3, horseUuid.toString());
+                statement.setString(4, hornUuid.toString());
+                statement.executeUpdate();
+            }
+        });
+    }
+
+    public CompletableFuture<Void> deleteIfHornMatchesAsync(UUID horseUuid, UUID hornUuid) {
+        return runAsync(() -> {
+            try (Connection connection = openConnection(); PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM summon_horses WHERE horse_uuid = ? AND horn_uuid = ?")) {
+                statement.setString(1, horseUuid.toString());
+                statement.setString(2, hornUuid.toString());
+                statement.executeUpdate();
+            }
+        });
+    }
+
+    private Optional<RegisteredSummonHorse> findByHorseUuid(Connection connection, UUID horseUuid) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(FIND_BY_HORSE_SQL)) {
+            statement.setString(1, horseUuid.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    return Optional.empty();
+                }
+                String hornUuidRaw = resultSet.getString("horn_uuid");
+                return Optional.of(new RegisteredSummonHorse(
+                        UUID.fromString(resultSet.getString("horse_uuid")),
+                        UUID.fromString(resultSet.getString("owner_uuid")),
+                        hornUuidRaw == null ? null : UUID.fromString(hornUuidRaw),
+                        resultSet.getInt("uses_remaining"),
+                        resultSet.getString("horse_name"),
+                        UUID.fromString(resultSet.getString("world_uuid")),
+                        resultSet.getDouble("x"),
+                        resultSet.getDouble("y"),
+                        resultSet.getDouble("z")
+                ));
+            }
+        }
+    }
+
+    private void save(Connection connection, RegisteredSummonHorse horse) throws SQLException {
+        long now = System.currentTimeMillis();
+        try (PreparedStatement statement = connection.prepareStatement(UPSERT_SQL)) {
+            statement.setString(1, horse.horseUuid().toString());
+            statement.setString(2, horse.ownerUuid().toString());
+            statement.setString(3, horse.hornUuid().toString());
+            statement.setInt(4, horse.usesRemaining());
+            statement.setString(5, horse.horseName());
+            statement.setString(6, horse.worldUuid().toString());
+            statement.setDouble(7, horse.x());
+            statement.setDouble(8, horse.y());
+            statement.setDouble(9, horse.z());
+            statement.setLong(10, now);
+            statement.setLong(11, now);
+            statement.executeUpdate();
+        }
+    }
+
+    private void addColumnIfMissing(Connection connection, String columnName, String definition) throws SQLException {
+        try (ResultSet columns = connection.getMetaData().getColumns(null, null, "summon_horses", columnName)) {
+            if (columns.next()) {
+                return;
+            }
+        }
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("ALTER TABLE summon_horses ADD COLUMN " + columnName + " " + definition);
+        }
     }
 
     private Connection openConnection() throws SQLException {

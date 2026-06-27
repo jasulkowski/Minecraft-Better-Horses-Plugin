@@ -15,6 +15,8 @@ import me.luisgamedev.betterhorses.summon.HorseSummonListener;
 import me.luisgamedev.betterhorses.summon.HorseSummonPersistenceListener;
 import me.luisgamedev.betterhorses.summon.HorseSummonRepository;
 import me.luisgamedev.betterhorses.summon.HorseSummonService;
+import me.luisgamedev.betterhorses.summon.HorseSummonSettings;
+import me.luisgamedev.betterhorses.summon.HorseSummonTrackingTask;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -258,6 +260,19 @@ public class BetterHorses extends JavaPlugin {
             HorseSummonService summonService = new HorseSummonService(this, horseSummonRepository);
             pluginManager.registerEvents(new HorseSummonListener(this, summonService), this);
             pluginManager.registerEvents(new HorseSummonPersistenceListener(summonService), this);
+
+            HorseSummonSettings summonSettings = HorseSummonSettings.load(this);
+            if (summonSettings.trackingEnabled()) {
+                long intervalTicks = Math.max(5L, summonSettings.trackingUpdateIntervalSeconds()) * 20L;
+                Bukkit.getScheduler().runTaskTimer(
+                        this,
+                        new HorseSummonTrackingTask(this, summonService),
+                        intervalTicks,
+                        intervalTicks
+                );
+                debugLog("TASK", "REGISTER", true, "Registered HorseSummonTrackingTask every " + summonSettings.trackingUpdateIntervalSeconds() + " seconds.");
+            }
+
             debugLog("LISTENER", "REGISTER", true, "Registered HorseSummonListener and HorseSummonPersistenceListener.");
         }
 

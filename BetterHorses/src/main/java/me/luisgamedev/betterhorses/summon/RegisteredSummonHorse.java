@@ -8,6 +8,8 @@ import java.util.UUID;
 public record RegisteredSummonHorse(
         UUID horseUuid,
         UUID ownerUuid,
+        UUID hornUuid,
+        int usesRemaining,
         String horseName,
         UUID worldUuid,
         double x,

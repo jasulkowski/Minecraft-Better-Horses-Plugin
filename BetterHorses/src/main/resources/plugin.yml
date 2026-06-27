@@ -43,3 +43,7 @@ permissions:
   betterhorses.summon:
     description: Allows binding and using goat horns to call mounts
     default: true
+
+  betterhorses.summoncooldown.<seconds>:
+    description: Dynamic permission pattern. Replace <seconds> with a number, for example betterhorses.summoncooldown.60
+    default: false

@@ -10,6 +10,8 @@ public final class HorseSummonKeys {
 
     public static final NamespacedKey BOUND_HORSE_UUID = key("summon_horse_uuid");
     public static final NamespacedKey BOUND_OWNER_UUID = key("summon_owner_uuid");
+    public static final NamespacedKey HORN_UUID = key("summon_horn_uuid");
+    public static final NamespacedKey USES_REMAINING = key("summon_uses_remaining");
     public static final NamespacedKey BOUND_HORSE_NAME = key("summon_horse_name");
     public static final NamespacedKey LAST_WORLD = key("summon_last_world");
     public static final NamespacedKey LAST_X = key("summon_last_x");

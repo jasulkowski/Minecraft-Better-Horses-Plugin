@@ -1,30 +1,22 @@
 package me.luisgamedev.betterhorses.summon;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
-
-import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Data stored inside a summon horn.
+ * Immutable data stored inside a summon horn.
+ *
+ * <p>The record deliberately contains only plain values so it is safe to pass
+ * between the SQLite worker and the Bukkit main thread.</p>
  */
 public record BoundHornData(
         UUID horseUuid,
         UUID ownerUuid,
+        UUID hornUuid,
         String horseName,
+        int usesRemaining,
         UUID lastWorldUuid,
         double lastX,
         double lastY,
         double lastZ
 ) {
-
-    public Optional<Location> lastKnownLocation() {
-        World world = Bukkit.getWorld(lastWorldUuid);
-        if (world == null) {
-            return Optional.empty();
-        }
-        return Optional.of(new Location(world, lastX, lastY, lastZ));
-    }
 }

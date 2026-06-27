@@ -73,6 +73,11 @@ If you have any questions or need help feel free to join my discord server: http
   Administrator command to generate a custom horse item with your own stats, name, and optional **specific trait**.  
   If no trait is provided, one is selected randomly based on configured chances, traits can only be selected if enabled in the config.  
 
+- 📯 **Horse Horn**
+  - Bind a Goat Horn to your horse with **Sneak + Right Click**.
+  - Blow the horn to call your loyal mount from anywhere in the world.
+  - Works even if the horse is in an unloaded chunk.
+  - Configurable cooldown, notifications, and disabled worlds.
 ---
 
 ### ⚙️ Configuration
@@ -237,14 +242,16 @@ Version 5.0 and above:
 
 ### 📚 Commands
 
-| Command                                  | Description                                 | Permission                          |
-|------------------------------------------|---------------------------------------------|-------------------------------------|
-| `/horse spawn`                           | Spawn a horse using the item                | `betterhorses.base`                |
-| `/horse despawn`                         | Turn the horse you're riding into an item   | `betterhorses.base`              |
-| `/horse neuter`                          | Castrate the horse item in your hand        | `betterhorses.neuter`               |
-| `/horsecreate`                           | Spawn a custom horse item                   | `betterhorses.create`               |
-| `/horsecreate 100 1.0 2.0 male Zeus`     | Create superhorse with custom name "Zeus"   | `betterhorses.create`               |
-| `/horsecreate 80 0.3 1.1 female Flare hellmare` | Create horse with fixed trait `hellmare` | `betterhorses.create`               |
+| Command                                  | Description                                 | Permission                                 |
+|------------------------------------------|---------------------------------------------|--------------------------------------------|
+| `/horse spawn`                           | Spawn a horse using the item                | `betterhorses.base`                        |
+| `/horse despawn`                         | Turn the horse you're riding into an item   | `betterhorses.base`                        |
+| `/horse neuter`                          | Castrate the horse item in your hand        | `betterhorses.neuter`                      |
+| `/horsecreate`                           | Spawn a custom horse item                   | `betterhorses.create`                      |
+| `/horsecreate 100 1.0 2.0 male Zeus`     | Create superhorse with custom name "Zeus"   | `betterhorses.create`                      |
+| `/horsecreate 80 0.3 1.1 female Flare hellmare` | Create horse with fixed trait `hellmare` | `betterhorses.create`                  |
+| -                                        | Permission for summon                       | `betterhorses.summon`                      |
+| -                                        | Cooldown for horn                           | `betterhorses.summoncooldown.*number*`     |
 
 ---
 

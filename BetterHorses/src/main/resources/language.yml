@@ -37,6 +37,24 @@ messages:
   cooldown-message-bossbar: "&e%value% &7Cooldown"
   cooldown-message-hotbar: "&e%value% &7Cooldown: &f%remaining%s"
 
+  summon:
+    bound: "&aHorn bound to &e%horse%&a. Use it to call your mount."
+    success: "&aYou called &e%horse%&a."
+    failed: "&cCould not call this mount here."
+    not-owner: "&cThis is not your mount."
+    not-horn-owner: "&cThis horn is bound to another player."
+    not-found: "&cCould not find this mount. Its saved chunk was loaded, but the mount was not there."
+    searching: "&7Calling your mount..."
+    disabled-world: "&cYou cannot call mounts in this world: &e%world%&c."
+    has-passenger: "&cYou cannot call this mount while another player is riding it."
+    cooldown: "&eWait %seconds%s before calling your mount again."
+    cooldown-actionbar: "&eHorn cooldown: &f%seconds%s"
+    invalid-horn: "&cThis horn cannot store mount data."
+    unbound-horn: "&cThis horn is not bound to any mount."
+    horn-name: "&6Horn of %horse%"
+    horn-lore-owner: "&7Owner: &f%player%"
+    horn-lore-use: "&7Right-click to call &e%horse%&7."
+
   # /horse info debug output. Available placeholders:
   # Shared horse/item PDC placeholders: %gender%, %current_health%, %health%, %speed%, %jump%, %owner%, %name%, %style%, %color%, %growth_stage%, %mount_type%, %trait%, %neutered%, %cooldown%, %saddle%, %armor%, %armor_data%, %base_health%, %base_speed%, %base_jump%, %training_riding_units%, %training_brushing_units%, %training_feeding_units%, %training_brush_cooldown%, %training_feed_cooldown%
   # The same saved values are also available as %pdc_<key>%, for example %pdc_health% or %pdc_training_riding_units%.
@@ -116,3 +134,4 @@ training-lore:
     riding: "&7Riding: %bar% &b%percent%%"
     brushing: "&7Brushing: %bar% &b%percent%%"
     feeding: "&7Feeding: %bar% &b%percent%%"
+

@@ -4,6 +4,10 @@ version: 6.1
 api-version: 1.20
 softdepend: [ ProtocolLib, PlaceholderAPI ]
 
+libraries:
+  - org.xerial:sqlite-jdbc:3.46.1.0
+  - org.slf4j:slf4j-api:2.0.13
+
 commands:
   horse:
     description: Manage horse actions like spawn and despawn
@@ -34,3 +38,8 @@ permissions:
 
   betterhorses.bypass:
     description: Allows riding horses of other players
+
+
+  betterhorses.summon:
+    description: Allows binding and using goat horns to call mounts
+    default: true

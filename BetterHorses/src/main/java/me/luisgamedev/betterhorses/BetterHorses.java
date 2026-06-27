@@ -11,6 +11,10 @@ import me.luisgamedev.betterhorses.language.LanguageManager;
 import me.luisgamedev.betterhorses.listeners.HorseMountListener;
 import me.luisgamedev.betterhorses.listeners.*;
 import me.luisgamedev.betterhorses.tasks.TraitParticleTask;
+import me.luisgamedev.betterhorses.summon.HorseSummonListener;
+import me.luisgamedev.betterhorses.summon.HorseSummonPersistenceListener;
+import me.luisgamedev.betterhorses.summon.HorseSummonRepository;
+import me.luisgamedev.betterhorses.summon.HorseSummonService;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -36,10 +40,14 @@ public class BetterHorses extends JavaPlugin {
     private boolean protocolLibAvailable = false;
     private ProtocolManager protocolManager;
     private BukkitAudiences audiences;
+    private HorseSummonRepository horseSummonRepository;
 
 
     @Override
     public void onDisable() {
+        if (horseSummonRepository != null) {
+            horseSummonRepository.close();
+        }
         if(audiences != null) audiences.close();
     }
 
@@ -60,6 +68,8 @@ public class BetterHorses extends JavaPlugin {
             );
         }
         languageManager = new LanguageManager(this, audiences);
+        horseSummonRepository = new HorseSummonRepository(this);
+        horseSummonRepository.initializeAsync();
 
         registerListeners();
 
@@ -243,6 +253,13 @@ public class BetterHorses extends JavaPlugin {
         pluginManager.registerEvents(new HorseFeedListener(), this);
         pluginManager.registerEvents(new HorseItemBlockerListener(), this);
         pluginManager.registerEvents(new HorseMountListener(), this);
+
+        if (config.getBoolean("horse-summon.enabled", true)) {
+            HorseSummonService summonService = new HorseSummonService(this, horseSummonRepository);
+            pluginManager.registerEvents(new HorseSummonListener(this, summonService), this);
+            pluginManager.registerEvents(new HorseSummonPersistenceListener(summonService), this);
+            debugLog("LISTENER", "REGISTER", true, "Registered HorseSummonListener and HorseSummonPersistenceListener.");
+        }
 
         debugLog("LISTENER", "REGISTER_BASE", true, "Registered core horse listeners.");
 

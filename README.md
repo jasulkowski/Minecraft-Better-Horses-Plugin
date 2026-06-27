@@ -252,6 +252,7 @@ Version 5.0 and above:
 | `/horsecreate 80 0.3 1.1 female Flare hellmare` | Create horse with fixed trait `hellmare` | `betterhorses.create`                  |
 | -                                        | Permission for summon                       | `betterhorses.summon`                      |
 | -                                        | Cooldown for horn                           | `betterhorses.summoncooldown.*number*`     |
+| -                                        | Uses for horn                               | `betterhorses.summonuses.10`               |
 
 ---
 

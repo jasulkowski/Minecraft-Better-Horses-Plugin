@@ -3,6 +3,7 @@ package me.luisgamedev.betterhorses.listeners;
 import me.luisgamedev.betterhorses.BetterHorses;
 import me.luisgamedev.betterhorses.api.BetterHorseKeys;
 import me.luisgamedev.betterhorses.training.TrainingManager;
+import me.luisgamedev.betterhorses.utils.HorseIdentity;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -50,6 +51,12 @@ public class HorseFeedListener implements Listener {
 
         final long now = System.currentTimeMillis();
         final PersistentDataContainer data = horse.getPersistentDataContainer();
+
+        if (HorseIdentity.isNeutered(data)) {
+            event.setCancelled(true);
+            BetterHorses.getInstance().getLang().send(player, "messages.neutered-cannot-breed");
+            return;
+        }
 
         final long cooldownSeconds = config.getLong("settings.breeding-cooldown", 0L);
         if (cooldownSeconds > 0L) {

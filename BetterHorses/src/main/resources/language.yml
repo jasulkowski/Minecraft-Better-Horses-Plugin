@@ -9,6 +9,7 @@ messages:
   horse-usage: "Usage: /horse <spawn|despawn|neuter|reload|info*>"
   already-castrated: "This horse is already castrated."
   successfully-castrated: "You castrated the horse. It can no longer breed."
+  neutered-cannot-breed: "This horse is castrated and cannot breed."
   horse-respawned: "%mount% respawned with stored stats."
   invalid-horse-data: "This item does not contain valid %mount% data."
   not-horse-owner: "You are not the owner of this %mount%."

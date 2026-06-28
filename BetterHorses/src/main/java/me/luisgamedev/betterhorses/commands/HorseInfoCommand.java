@@ -2,6 +2,7 @@ package me.luisgamedev.betterhorses.commands;
 
 import me.luisgamedev.betterhorses.BetterHorses;
 import me.luisgamedev.betterhorses.api.BetterHorseKeys;
+import me.luisgamedev.betterhorses.utils.HorseIdentity;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -104,7 +105,7 @@ public final class HorseInfoCommand {
         placeholders.put("%trait%", data.getOrDefault(BetterHorseKeys.TRAIT, PersistentDataType.STRING, "<none>"));
         placeholders.put("%gender%", data.getOrDefault(BetterHorseKeys.GENDER, PersistentDataType.STRING, "<none>"));
         placeholders.put("%growth_stage%", String.valueOf(data.getOrDefault(BetterHorseKeys.GROWTH_STAGE, PersistentDataType.INTEGER, -1)));
-        placeholders.put("%neutered%", resolveBooleanFlag(data, BetterHorseKeys.NEUTERED));
+        placeholders.put("%neutered%", String.valueOf(HorseIdentity.isNeutered(data)));
         placeholders.put("%persistent_data%", renderPersistentData(data));
         placeholders.put("%known_values_title%", "Known BetterHorses Values (mounted horse)");
         placeholders.put("%known_values%", renderKnownHorseDataValues(data));
@@ -228,7 +229,7 @@ public final class HorseInfoCommand {
 
     private static String resolveKnownValue(PersistentDataContainer container, NamespacedKey key) {
         if (key.equals(BetterHorseKeys.NEUTERED)) {
-            return resolveBooleanFlag(container, key);
+            return String.valueOf(HorseIdentity.isNeutered(container));
         }
         if (key.equals(BetterHorseKeys.TRAINING_BRUSH_COOLDOWN)
                 || key.equals(BetterHorseKeys.TRAINING_FEED_COOLDOWN)

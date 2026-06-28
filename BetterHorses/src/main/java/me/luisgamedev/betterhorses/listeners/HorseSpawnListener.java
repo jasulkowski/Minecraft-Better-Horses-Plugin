@@ -5,6 +5,7 @@ import me.luisgamedev.betterhorses.api.BetterHorsesAPI;
 import me.luisgamedev.betterhorses.api.events.BetterHorseSpawnEvent;
 import me.luisgamedev.betterhorses.training.TrainingManager;
 import me.luisgamedev.betterhorses.utils.MountConfig;
+import me.luisgamedev.betterhorses.utils.HorseIdentity;
 import me.luisgamedev.betterhorses.utils.SupportedMountType;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
@@ -42,6 +43,7 @@ public class HorseSpawnListener implements Listener {
         String gender = GENDERS[random.nextInt(GENDERS.length)];
         PersistentDataContainer data = horse.getPersistentDataContainer();
         data.set(genderKey, PersistentDataType.STRING, gender);
+        HorseIdentity.ensureHorseId(data);
 
         int stage = 10;
 

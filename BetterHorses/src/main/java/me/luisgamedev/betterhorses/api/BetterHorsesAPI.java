@@ -9,6 +9,7 @@ import me.luisgamedev.betterhorses.traits.TraitRegistry;
 import me.luisgamedev.betterhorses.training.TrainingManager;
 import me.luisgamedev.betterhorses.utils.AttributeResolver;
 import me.luisgamedev.betterhorses.utils.HorseArmorUtils;
+import me.luisgamedev.betterhorses.utils.HorseIdentity;
 import me.luisgamedev.betterhorses.utils.MountConfig;
 import me.luisgamedev.betterhorses.utils.SupportedMountType;
 import org.bukkit.Bukkit;
@@ -75,8 +76,9 @@ public class BetterHorsesAPI {
         data.set(BetterHorseKeys.COLOR, PersistentDataType.STRING, Horse.Color.CREAMY.name());
         data.set(BetterHorseKeys.GROWTH_STAGE, PersistentDataType.INTEGER, growth);
         data.set(BetterHorseKeys.MOUNT_TYPE, PersistentDataType.STRING, targetMountType.getEntityType().name());
+        HorseIdentity.ensureHorseId(data);
         if (isNeutered) {
-            data.set(BetterHorseKeys.NEUTERED, PersistentDataType.BYTE, (byte) 1);
+            HorseIdentity.markNeutered(data);
         }
         TrainingManager.ensureTrainingData(data);
 
@@ -169,7 +171,10 @@ public class BetterHorsesAPI {
         String armorData = data.get(BetterHorseKeys.ARMOR_DATA, PersistentDataType.STRING);
         String customName = data.get(BetterHorseKeys.NAME, PersistentDataType.STRING);
         String trait = data.get(BetterHorseKeys.TRAIT, PersistentDataType.STRING);
-        Byte neutered = data.get(BetterHorseKeys.NEUTERED, PersistentDataType.BYTE);
+        HorseIdentity.migrateLegacyNeuteredItem(data);
+        String horseId = HorseIdentity.ensureHorseId(data);
+        boolean isNeutered = HorseIdentity.isNeutered(data);
+        item.setItemMeta(meta);
         Integer storedStage = data.get(BetterHorseKeys.GROWTH_STAGE, PersistentDataType.INTEGER);
         String mountTypeName = data.get(BetterHorseKeys.MOUNT_TYPE, PersistentDataType.STRING);
         long brushTrainingCooldown = data.getOrDefault(BetterHorseKeys.TRAINING_BRUSH_COOLDOWN, PersistentDataType.LONG, 0L);
@@ -244,12 +249,13 @@ public class BetterHorsesAPI {
         horseData.set(BetterHorseKeys.OWNER, PersistentDataType.STRING, ownerUUID);
         horseData.set(BetterHorseKeys.GENDER, PersistentDataType.STRING, gender);
         horseData.set(BetterHorseKeys.MOUNT_TYPE, PersistentDataType.STRING, mountType.getEntityType().name());
+        horseData.set(BetterHorseKeys.HORSE_ID, PersistentDataType.STRING, horseId);
 
         if (trait != null && !trait.isBlank()) {
             horseData.set(BetterHorseKeys.TRAIT, PersistentDataType.STRING, trait);
         }
-        if (neutered != null && neutered == (byte) 1) {
-            horseData.set(BetterHorseKeys.NEUTERED, PersistentDataType.BYTE, (byte) 1);
+        if (isNeutered) {
+            HorseIdentity.markNeutered(horseData);
         }
         if (cooldown != null) {
             horseData.set(BetterHorseKeys.COOLDOWN, PersistentDataType.LONG, cooldown);
@@ -305,7 +311,8 @@ public class BetterHorsesAPI {
         }
 
         String trait = data.has(traitKey, PersistentDataType.STRING) ? data.get(traitKey, PersistentDataType.STRING) : null;
-        boolean isNeutered = data.has(neuterKey, PersistentDataType.BYTE) && data.get(neuterKey, PersistentDataType.BYTE) == (byte) 1;
+        String horseId = HorseIdentity.ensureHorseId(data);
+        boolean isNeutered = HorseIdentity.isNeutered(data);
         Long cooldown = data.has(cooldownKey, PersistentDataType.LONG) ? data.get(cooldownKey, PersistentDataType.LONG) : null;
 
         int growthStage;
@@ -384,8 +391,9 @@ public class BetterHorsesAPI {
         itemData.set(BetterHorseKeys.COLOR, PersistentDataType.STRING, color.name());
         itemData.set(BetterHorseKeys.GROWTH_STAGE, PersistentDataType.INTEGER, growthStage);
         itemData.set(BetterHorseKeys.MOUNT_TYPE, PersistentDataType.STRING, mountType.getEntityType().name());
+        itemData.set(BetterHorseKeys.HORSE_ID, PersistentDataType.STRING, horseId);
         if (trait != null) itemData.set(traitKey, PersistentDataType.STRING, trait.toLowerCase());
-        if (isNeutered) itemData.set(neuterKey, PersistentDataType.BYTE, (byte) 1);
+        if (isNeutered) HorseIdentity.markNeutered(itemData);
         if (cooldown != null) itemData.set(BetterHorseKeys.COOLDOWN, PersistentDataType.LONG, cooldown);
         if (saddle != null) itemData.set(BetterHorseKeys.SADDLE, PersistentDataType.STRING, saddle.getType().name());
         if (armor != null) {

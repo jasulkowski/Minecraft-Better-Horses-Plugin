@@ -298,8 +298,11 @@ public final class HorseSummonService {
                 return;
             }
             if (result.horse().isEmpty()) {
-                consumeUse(player, horn, data, settings);
+                // Send the lookup result first. If this was the final horn charge,
+                // consumeUse() sends the broken-horn notice afterwards so it remains
+                // visible in ACTION_BAR mode instead of being overwritten.
                 notify(player, settings, "messages.summon.not-found");
+                consumeUse(player, horn, data, settings);
                 return;
             }
             summonHorse(player, result.horse().get(), horn, data, settings);
@@ -540,6 +543,11 @@ public final class HorseSummonService {
         TrainingManager.recalculateAndApplyBonuses(horse);
         updateLastKnownLocation(horn, horse.getLocation());
         updateRegisteredHorseLocationAsync(horse);
+
+        // Send success before consuming the charge. On the final charge,
+        // consumeUse() emits the broken-horn notice last, which prevents the
+        // success action bar from immediately hiding it.
+        notify(player, settings, "messages.summon.success", "%horse%", resolveHorseName(horse));
         consumeUse(player, horn, data, settings);
         applyCooldown(player, settings);
 
@@ -555,7 +563,6 @@ public final class HorseSummonService {
             }, 2L);
         }
 
-        notify(player, settings, "messages.summon.success", "%horse%", resolveHorseName(horse));
         plugin.debugLog("HORSE_SUMMON", "CALL", true, "Player " + player.getName() + " called horse " + horse.getUniqueId() + ".");
     }
 

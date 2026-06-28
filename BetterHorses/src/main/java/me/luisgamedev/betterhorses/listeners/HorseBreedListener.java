@@ -7,6 +7,7 @@ import me.luisgamedev.betterhorses.utils.MountConfig;
 import me.luisgamedev.betterhorses.utils.SupportedMountType;
 import org.bukkit.Bukkit;
 import me.luisgamedev.betterhorses.utils.AttributeResolver;
+import me.luisgamedev.betterhorses.utils.HorseIdentity;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.configuration.ConfigurationSection;
@@ -58,6 +59,12 @@ public class HorseBreedListener implements Listener {
         if (childType == null || fatherType == null || motherType == null) return;
         if (!childType.equals(fatherType) || !childType.equals(motherType)) return;
         if (!childType.isEnabled(config)) return;
+
+        // Defensive check: only the exact parents involved in this breeding event are evaluated.
+        if (isNeutered(father) || isNeutered(mother)) {
+            event.setCancelled(true);
+            return;
+        }
 
         father.setAge(0);
         mother.setAge(0);
@@ -128,6 +135,7 @@ public class HorseBreedListener implements Listener {
 
         child.getPersistentDataContainer().set(BetterHorseKeys.GENDER, PersistentDataType.STRING, gender);
         child.getPersistentDataContainer().set(BetterHorseKeys.GROWTH_STAGE, PersistentDataType.INTEGER, 1);
+        HorseIdentity.ensureHorseId(child.getPersistentDataContainer());
 
         if (MountConfig.isGrowthEnabled(config, childType)) {
             child.setAgeLock(true);
@@ -172,8 +180,7 @@ public class HorseBreedListener implements Listener {
     }
 
     private boolean isNeutered(AbstractHorse horse) {
-        PersistentDataContainer data = horse.getPersistentDataContainer();
-        return data.has(BetterHorseKeys.NEUTERED, PersistentDataType.BYTE) && data.get(BetterHorseKeys.NEUTERED, PersistentDataType.BYTE) == (byte) 1;
+        return HorseIdentity.isNeutered(horse.getPersistentDataContainer());
     }
 
     private double avg(double a, double b) {

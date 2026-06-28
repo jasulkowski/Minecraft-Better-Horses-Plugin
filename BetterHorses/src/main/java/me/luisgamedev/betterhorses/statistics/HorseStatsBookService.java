@@ -2,9 +2,11 @@ package me.luisgamedev.betterhorses.statistics;
 
 import me.luisgamedev.betterhorses.BetterHorses;
 import me.luisgamedev.betterhorses.abilities.HorseAbilityProfile;
+import me.luisgamedev.betterhorses.abilities.HorseAbilityStorage;
 import me.luisgamedev.betterhorses.api.BetterHorsesAPI;
 import me.luisgamedev.betterhorses.language.LanguageManager;
 import me.luisgamedev.betterhorses.neutering.EconomyProvider;
+import me.luisgamedev.betterhorses.utils.HorseIdentity;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.AbstractHorse;
@@ -153,13 +155,33 @@ public final class HorseStatsBookService {
         );
 
         StringBuilder page = new StringBuilder(header);
+
+        // Keep this identity-bound status near the top of the first page. Long
+        // training lore and an additional trait line could previously push the
+        // neuter marker past Minecraft's page-length limit.
+        String neuteredLine = null;
+        if (HorseIdentity.isNeutered(horse.getPersistentDataContainer())) {
+            neuteredLine = ChatColor.DARK_GRAY
+                    + plugin.getLang().getRaw(player, "messages.lore-neutered");
+            page.append("\n\n").append(neuteredLine);
+        }
+
         if (!lore.isEmpty()) {
             page.append("\n\n");
-            for (int index = 0; index < lore.size(); index++) {
-                page.append(lore.get(index));
-                if (index + 1 < lore.size()) {
+            String strippedNeutered = neuteredLine == null
+                    ? null
+                    : ChatColor.stripColor(neuteredLine);
+            boolean wroteLine = false;
+            for (String loreLine : lore) {
+                String strippedLoreLine = ChatColor.stripColor(loreLine);
+                if (strippedNeutered != null && strippedNeutered.equals(strippedLoreLine)) {
+                    continue;
+                }
+                if (wroteLine) {
                     page.append('\n');
                 }
+                page.append(loreLine);
+                wroteLine = true;
             }
         }
 
@@ -197,7 +219,7 @@ public final class HorseStatsBookService {
         String active = profile.activeAbility()
                 .map(key -> formatAbilityName(player, key, true))
                 .orElseGet(() -> lang.getRaw(player, "messages.statistics.abilities-none"));
-        String other = formatOtherAbilities(player, profile.otherAbilities());
+        String other = formatOtherAbilities(player, horse, profile.otherAbilities());
 
         StringBuilder page = new StringBuilder();
         page.append(lang.getRaw(player, "messages.statistics.abilities-header"));
@@ -216,17 +238,19 @@ public final class HorseStatsBookService {
         return page.toString();
     }
 
-    private String formatOtherAbilities(Player player, List<String> abilityKeys) {
+    private String formatOtherAbilities(Player player, AbstractHorse horse, List<String> abilityKeys) {
         if (abilityKeys.isEmpty()) {
             return plugin.getLang().getRaw(player, "messages.statistics.abilities-none");
         }
 
         List<String> lines = new ArrayList<>(abilityKeys.size());
         for (String abilityKey : abilityKeys) {
+            int level = HorseAbilityStorage.getLevel(horse.getPersistentDataContainer(), abilityKey);
             lines.add(plugin.getLang().getFormattedRaw(
                     player,
-                    "messages.statistics.other-ability-line",
-                    "%ability%", formatAbilityName(player, abilityKey, false)
+                    "messages.statistics.other-ability-level",
+                    "%ability%", formatAbilityName(player, abilityKey, false),
+                    "%level%", Math.max(1, level)
             ));
         }
         return String.join("\n", lines);
@@ -234,6 +258,12 @@ public final class HorseStatsBookService {
 
     private String formatAbilityName(Player player, String abilityKey, boolean traitAbility) {
         LanguageManager lang = plugin.getLang();
+        if (!traitAbility && plugin.getHorseUpgradeService() != null) {
+            var configuredUpgrade = plugin.getHorseUpgradeService().registry().find(abilityKey);
+            if (configuredUpgrade.isPresent()) {
+                return lang.parseToString(player, configuredUpgrade.get().displayName());
+            }
+        }
         String path = (traitAbility ? "traits." : "abilities.") + abilityKey.toLowerCase();
         if (lang.getConfig().isString(path)) {
             return lang.getRaw(player, path);

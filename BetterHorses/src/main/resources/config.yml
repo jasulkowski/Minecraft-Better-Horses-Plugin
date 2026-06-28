@@ -1,5 +1,9 @@
 # BetterHorses config
 
+# Interface language. The plugin loads languages_<code>.yml from its data folder.
+# Bundled translations: en, ru. Custom translations can use the same naming scheme.
+language: en
+
 # Configure custom aliases for the /horse command
 command-aliases:
   # - bh
@@ -7,13 +11,11 @@ command-aliases:
 
 
 # Physical veterinary shears used to neuter horses.
+# Its translated name and lore are stored in languages_<code>.yml.
 neutering:
   # When enabled, only the horse owner may use the veterinary shears.
   require-owner: true
   tool:
-    # Display name of the plugin-issued shears. Legacy color codes and MiniMessage are supported.
-    name: "&cVeterinary Shears"
-
     # Price charged by a Vault-compatible economy when using /horse neuter.
     # Set to 0 to give the item for free and allow use without Vault.
     price: 0.0
@@ -27,13 +29,11 @@ neutering:
       enabled: false
       data: 10001
 
-# Physical glowing book used to inspect a selected horse. The virtual book
-# contains one statistics page and one special-abilities page.
+# Physical glowing book used to inspect a selected horse. Its translated name and lore
+# are stored in languages_<code>.yml. The virtual book contains one statistics page
+# and one special-abilities page.
 statistics:
   book:
-    # Display name of the plugin-issued inspection book.
-    name: "&6Horse Record Book"
-
     # Price charged by a Vault-compatible economy when using /horse book.
     # Set to 0 to give the book for free and allow use without Vault.
     price: 0.0
@@ -43,6 +43,187 @@ statistics:
     custom-model:
       enabled: false
       data: 10002
+
+# Permanent upgrades purchased for the horse currently ridden by the player.
+# Upgrade names, descriptions, effects and required-item names are translated in
+# languages_<code>.yml under upgrade-definitions.<upgrade_id>.
+# Upgrades are stored on that exact horse, are not inherited by foals, and remain
+# after restarts or conversion between an entity and a BetterHorses item.
+upgrades:
+  enabled: true
+
+  # Every level may require both Vault money and one or more item stacks.
+  # custom-model-data: -1 accepts any item of that material.
+  # A value of 0 or greater requires that exact CustomModelData value.
+  stable_speed:
+    enabled: true
+    max-level: 3
+    levels:
+      1:
+        money: 500.0
+        effect: 0.05
+        items:
+          - material: SUGAR
+            amount: 64
+            custom-model-data: -1
+      2:
+        money: 1500.0
+        effect: 0.10
+        items:
+          - material: SUGAR
+            amount: 128
+            custom-model-data: -1
+      3:
+        money: 3500.0
+        effect: 0.15
+        items:
+          - material: SUGAR
+            amount: 192
+            custom-model-data: -1
+
+  vitality:
+    enabled: true
+    max-level: 3
+    levels:
+      1:
+        money: 500.0
+        effect: 2.0
+        items:
+          - material: APPLE
+            amount: 32
+            custom-model-data: -1
+      2:
+        money: 1500.0
+        effect: 4.0
+        items:
+          - material: GOLDEN_CARROT
+            amount: 32
+            custom-model-data: -1
+      3:
+        money: 3500.0
+        effect: 6.0
+        items:
+          - material: GOLDEN_APPLE
+            amount: 16
+            custom-model-data: -1
+
+  jump_training:
+    enabled: true
+    max-level: 3
+    levels:
+      1:
+        money: 500.0
+        effect: 0.05
+        items:
+          - material: SLIME_BALL
+            amount: 32
+            custom-model-data: -1
+      2:
+        money: 1500.0
+        effect: 0.10
+        items:
+          - material: RABBIT_FOOT
+            amount: 16
+            custom-model-data: -1
+      3:
+        money: 3500.0
+        effect: 0.15
+        items:
+          - material: RABBIT_FOOT
+            amount: 32
+            custom-model-data: -1
+
+  sure_footed:
+    enabled: true
+    max-level: 3
+    levels:
+      1:
+        money: 750.0
+        effect: 0.25
+        items:
+          - material: FEATHER
+            amount: 32
+            custom-model-data: -1
+      2:
+        money: 2000.0
+        effect: 0.50
+        items:
+          - material: FEATHER
+            amount: 64
+            custom-model-data: -1
+      3:
+        money: 5000.0
+        effect: 1.0
+        items:
+          - material: PHANTOM_MEMBRANE
+            amount: 16
+            custom-model-data: -1
+
+  tandem_seat:
+    enabled: true
+    max-level: 1
+    # Position of the invisible second seat relative to the horse.
+    passenger-offset: 0.65
+    seat-height: 0.85
+
+    # Lightweight client-lag compensation. The invisible seat is projected this
+    # many movement ticks forward and receives the horse velocity after teleport.
+    # 0 disables prediction; values above 2 are automatically clamped.
+    movement-prediction-ticks: 1.0
+    levels:
+      1:
+        money: 5000.0
+        effect: 1.0
+        items:
+          - material: SADDLE
+            amount: 1
+            custom-model-data: -1
+          # Example custom resource-pack component. Remove it or change the
+          # values when no custom item should be required.
+          # - material: PAPER
+          #   amount: 1
+          #   custom-model-data: 12001
+
+  horn_mastery:
+    enabled: true
+    max-level: 3
+    levels:
+      1:
+        money: 750.0
+        effect: 0.10
+        items:
+          - material: COPPER_INGOT
+            amount: 32
+            custom-model-data: -1
+      2:
+        money: 2250.0
+        effect: 0.20
+        items:
+          - material: COPPER_INGOT
+            amount: 64
+            custom-model-data: -1
+      3:
+        money: 5000.0
+        effect: 0.30
+        items:
+          - material: GOAT_HORN
+            amount: 1
+            custom-model-data: -1
+
+  loyal_mount:
+    enabled: true
+    max-level: 1
+    levels:
+      1:
+        money: 3000.0
+        effect: 1.0
+        items:
+          - material: NAME_TAG
+            amount: 1
+            custom-model-data: -1
+          - material: IRON_INGOT
+            amount: 32
+            custom-model-data: -1
 
 # Extensive debugging for command flow and horse item metadata inspection
 debug:

@@ -1,6 +1,6 @@
 name: BetterHorses
 main: me.luisgamedev.betterhorses.BetterHorses
-version: 6.1
+version: 6.2
 api-version: 1.20
 softdepend: [ ProtocolLib, PlaceholderAPI, Vault ]
 
@@ -11,7 +11,7 @@ libraries:
 commands:
   horse:
     description: Manage BetterHorses mounts and tools
-    usage: /<command> <spawn|stats|book|neuter|reload>
+    usage: /<command> <spawn|stats|book|neuter|upgrades|upgrade|reload>
 
   horsecreate:
     description: Create a custom horse item
@@ -33,6 +33,14 @@ permissions:
 
   betterhorses.create:
     description: Allows using /horsecreate
+    default: op
+
+  betterhorses.upgrade.use:
+    description: Allows listing and purchasing horse upgrades
+    default: true
+
+  betterhorses.upgrade.admin:
+    description: Allows setting or removing horse upgrades without paying
     default: op
 
   betterhorses.reload:

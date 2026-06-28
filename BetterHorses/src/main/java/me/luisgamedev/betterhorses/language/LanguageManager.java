@@ -9,14 +9,33 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
+/**
+ * Loads the globally selected language from languages_&lt;code&gt;.yml.
+ *
+ * <p>The selected language is read from {@code config.yml -> language}. English
+ * is always used as a fallback for missing keys. Additional translations can be
+ * added without code changes by placing a matching file in the plugin data
+ * folder, for example {@code languages_pl.yml}, and setting {@code language: pl}.</p>
+ */
 public class LanguageManager {
+
+    public static final String DEFAULT_LANGUAGE = "en";
+    private static final String FILE_PREFIX = "languages_";
+    private static final String FILE_SUFFIX = ".yml";
+    private static final Pattern SAFE_LANGUAGE_CODE = Pattern.compile("[a-z0-9_-]{2,16}");
 
     private static final Map<Character, String> LEGACY_MINIMESSAGE_TAGS = Map.ofEntries(
             Map.entry('0', "black"),
@@ -46,7 +65,10 @@ public class LanguageManager {
     private final BukkitAudiences audiences;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private final LegacyComponentSerializer legacySerializer = LegacyComponentSerializer.legacySection();
-    private FileConfiguration lang;
+
+    private volatile FileConfiguration lang;
+    private volatile String languageCode = DEFAULT_LANGUAGE;
+    private volatile String languageFileName = fileNameFor(DEFAULT_LANGUAGE);
 
     public LanguageManager(BetterHorses plugin, BukkitAudiences audiences) {
         this.plugin = plugin;
@@ -54,12 +76,99 @@ public class LanguageManager {
         loadLanguageFile();
     }
 
-    private void loadLanguageFile() {
-        File file = new File(plugin.getDataFolder(), "language.yml");
-        if (!file.exists()) {
-            plugin.saveResource("language.yml", false);
+    public static String normalizeLanguageCode(String rawCode) {
+        if (rawCode == null) {
+            return DEFAULT_LANGUAGE;
         }
-        lang = YamlConfiguration.loadConfiguration(file);
+        String normalized = rawCode.trim().toLowerCase(Locale.ROOT);
+        return SAFE_LANGUAGE_CODE.matcher(normalized).matches() ? normalized : DEFAULT_LANGUAGE;
+    }
+
+    public static String fileNameFor(String rawCode) {
+        return FILE_PREFIX + normalizeLanguageCode(rawCode) + FILE_SUFFIX;
+    }
+
+    private void loadLanguageFile() {
+        String requestedCode = normalizeLanguageCode(plugin.getConfig().getString("language", DEFAULT_LANGUAGE));
+        String requestedFileName = fileNameFor(requestedCode);
+        File requestedFile = new File(plugin.getDataFolder(), requestedFileName);
+
+        if (!requestedFile.exists()) {
+            if (hasBundledResource(requestedFileName)) {
+                plugin.saveResource(requestedFileName, false);
+            } else {
+                plugin.getLogger().warning(
+                        "Language file " + requestedFileName + " was not found. Falling back to "
+                                + fileNameFor(DEFAULT_LANGUAGE) + "."
+                );
+                requestedCode = DEFAULT_LANGUAGE;
+                requestedFileName = fileNameFor(DEFAULT_LANGUAGE);
+                requestedFile = new File(plugin.getDataFolder(), requestedFileName);
+                if (!requestedFile.exists() && hasBundledResource(requestedFileName)) {
+                    plugin.saveResource(requestedFileName, false);
+                }
+            }
+        }
+
+        YamlConfiguration loaded = YamlConfiguration.loadConfiguration(requestedFile);
+        loaded.setDefaults(createMergedDefaults(requestedFileName));
+
+        languageCode = requestedCode;
+        languageFileName = requestedFileName;
+        lang = loaded;
+        plugin.getLogger().info("Loaded BetterHorses language: " + languageCode + " (" + languageFileName + ").");
+    }
+
+
+    private boolean hasBundledResource(String fileName) {
+        try (InputStream stream = plugin.getResource(fileName)) {
+            return stream != null;
+        } catch (Exception exception) {
+            plugin.getLogger().warning("Could not inspect bundled language resource " + fileName + ": " + exception.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * English is the base fallback. A bundled selected translation is layered on
+     * top of it, so an incomplete future translation safely falls back per key.
+     */
+    private YamlConfiguration createMergedDefaults(String selectedFileName) {
+        YamlConfiguration merged = loadBundledConfiguration(fileNameFor(DEFAULT_LANGUAGE));
+        if (merged == null) {
+            merged = new YamlConfiguration();
+        }
+
+        if (!selectedFileName.equals(fileNameFor(DEFAULT_LANGUAGE))) {
+            YamlConfiguration selectedDefaults = loadBundledConfiguration(selectedFileName);
+            if (selectedDefaults != null) {
+                copyLeafValues(selectedDefaults, merged);
+            }
+        }
+        return merged;
+    }
+
+    private YamlConfiguration loadBundledConfiguration(String fileName) {
+        try (InputStream stream = plugin.getResource(fileName)) {
+            if (stream == null) {
+                return null;
+            }
+            return YamlConfiguration.loadConfiguration(
+                    new InputStreamReader(stream, StandardCharsets.UTF_8)
+            );
+        } catch (Exception exception) {
+            plugin.getLogger().warning("Could not load bundled language defaults from " + fileName + ": " + exception.getMessage());
+            return null;
+        }
+    }
+
+    private void copyLeafValues(ConfigurationSection source, ConfigurationSection target) {
+        for (String key : source.getKeys(true)) {
+            Object value = source.get(key);
+            if (!(value instanceof ConfigurationSection)) {
+                target.set(key, value);
+            }
+        }
     }
 
     public String getRaw(String key) {
@@ -202,6 +311,14 @@ public class LanguageManager {
 
     public FileConfiguration getConfig() {
         return lang;
+    }
+
+    public String getLanguageCode() {
+        return languageCode;
+    }
+
+    public String getLanguageFileName() {
+        return languageFileName;
     }
 
     public void reload() {

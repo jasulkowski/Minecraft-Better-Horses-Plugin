@@ -94,6 +94,14 @@ public final class BetterHorse {
         return HorseAbilityStorage.contains(handle.getPersistentDataContainer(), abilityKey);
     }
 
+    public int getOtherAbilityLevel(String abilityKey) {
+        return HorseAbilityStorage.getLevel(handle.getPersistentDataContainer(), abilityKey);
+    }
+
+    public boolean setOtherAbilityLevel(String abilityKey, int level) {
+        return HorseAbilityStorage.setLevel(handle.getPersistentDataContainer(), abilityKey, level);
+    }
+
     public Optional<Integer> getGrowthStage() {
         PersistentDataContainer data = handle.getPersistentDataContainer();
         return Optional.ofNullable(data.get(BetterHorseKeys.GROWTH_STAGE, PersistentDataType.INTEGER));

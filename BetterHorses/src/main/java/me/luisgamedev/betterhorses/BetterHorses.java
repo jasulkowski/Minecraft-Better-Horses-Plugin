@@ -26,6 +26,10 @@ import me.luisgamedev.betterhorses.summon.HorseSummonSettings;
 import me.luisgamedev.betterhorses.summon.HorseSummonTrackingTask;
 import me.luisgamedev.betterhorses.statistics.HorseStatsBookListener;
 import me.luisgamedev.betterhorses.statistics.HorseStatsBookService;
+import me.luisgamedev.betterhorses.upgrades.HorseUpgradeListener;
+import me.luisgamedev.betterhorses.upgrades.HorseUpgradeService;
+import me.luisgamedev.betterhorses.upgrades.TandemRideManager;
+import me.luisgamedev.betterhorses.commands.HorseUpgradeCommand;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -41,11 +45,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.logging.Level;
 
 public class BetterHorses extends JavaPlugin {
 
+    private static final List<String> BUNDLED_LANGUAGE_CODES = List.of("en", "ru");
     private static BetterHorses instance;
     private LanguageManager languageManager;
     private boolean protocolLibAvailable = false;
@@ -54,10 +61,15 @@ public class BetterHorses extends JavaPlugin {
     private HorseSummonRepository horseSummonRepository;
     private NeuterToolService neuterToolService;
     private HorseStatsBookService horseStatsBookService;
+    private HorseUpgradeService horseUpgradeService;
+    private TandemRideManager tandemRideManager;
 
 
     @Override
     public void onDisable() {
+        if (tandemRideManager != null) {
+            tandemRideManager.shutdown();
+        }
         if (horseSummonRepository != null) {
             horseSummonRepository.close();
         }
@@ -86,16 +98,21 @@ public class BetterHorses extends JavaPlugin {
         EconomyProvider economyProvider = initializeEconomyProvider();
         neuterToolService = new NeuterToolService(this, economyProvider);
         horseStatsBookService = new HorseStatsBookService(this, economyProvider);
+        horseUpgradeService = new HorseUpgradeService(this, economyProvider);
+        tandemRideManager = new TandemRideManager(this);
+        tandemRideManager.start();
+        horseUpgradeService.reapplyLoadedHorses();
 
         registerListeners();
 
         PluginCommand horseCommand = getCommand("horse");
         if (horseCommand != null) {
-            horseCommand.setTabCompleter(new HorseCommandCompleter());
+            horseCommand.setTabCompleter(new HorseCommandCompleter(horseUpgradeService));
             horseCommand.setExecutor(new HorseCommand(
                     new HorseNeuterCommand(neuterToolService),
                     new HorseStatsCommand(horseStatsBookService),
-                    new HorseBookCommand(horseStatsBookService)
+                    new HorseBookCommand(horseStatsBookService),
+                    new HorseUpgradeCommand(horseUpgradeService)
             ));
             applyHorseCommandAliases();
         }
@@ -125,21 +142,89 @@ public class BetterHorses extends JavaPlugin {
         return audiences;
     }
 
+    public HorseUpgradeService getHorseUpgradeService() {
+        return horseUpgradeService;
+    }
+
+    public TandemRideManager getTandemRideManager() {
+        return tandemRideManager;
+    }
+
     private void initializeConfigurationFiles() {
         saveDefaultConfig();
         reloadConfig();
         updateYamlWithMissingSections("config.yml", false);
-        updateYamlWithMissingSections("language.yml", true);
+        reloadConfig();
+        migrateLegacyLanguageFile();
+        updateBundledLanguageFiles();
+        updateConfiguredLanguageFile();
         reloadConfig();
     }
 
     public void reloadPluginConfiguration() {
         updateYamlWithMissingSections("config.yml", false);
-        updateYamlWithMissingSections("language.yml", true);
+        reloadConfig();
+        migrateLegacyLanguageFile();
+        updateBundledLanguageFiles();
+        updateConfiguredLanguageFile();
         reloadConfig();
         languageManager.reload();
+        if (horseUpgradeService != null) {
+            horseUpgradeService.reload();
+        }
         applyHorseCommandAliases();
         debugLog("PLUGIN", "RELOAD", true, "Configuration and language files were reloaded.");
+    }
+
+    /**
+     * Preserves installations that used the former language.yml layout. The old
+     * file is copied only when languages_en.yml does not exist, so later updates
+     * never overwrite an administrator's selected language file.
+     */
+    private void migrateLegacyLanguageFile() {
+        File legacyFile = new File(getDataFolder(), "language.yml");
+        File englishFile = new File(getDataFolder(), LanguageManager.fileNameFor("en"));
+        if (!legacyFile.isFile() || englishFile.exists()) {
+            return;
+        }
+
+        try {
+            Files.copy(legacyFile.toPath(), englishFile.toPath(), StandardCopyOption.COPY_ATTRIBUTES);
+            getLogger().info("Migrated legacy language.yml to " + englishFile.getName() + ".");
+        } catch (IOException exception) {
+            getLogger().log(Level.WARNING, "Failed to migrate legacy language.yml.", exception);
+        }
+    }
+
+    private void updateBundledLanguageFiles() {
+        for (String languageCode : BUNDLED_LANGUAGE_CODES) {
+            updateYamlWithMissingSections(LanguageManager.fileNameFor(languageCode), true);
+        }
+    }
+
+    /**
+     * Also supports future bundled translations without another code change. If
+     * languages_<code>.yml is present inside the jar, selecting that code causes
+     * the file to be generated and updated automatically.
+     */
+    private void updateConfiguredLanguageFile() {
+        String languageCode = LanguageManager.normalizeLanguageCode(
+                getConfig().getString("language", LanguageManager.DEFAULT_LANGUAGE)
+        );
+        String fileName = LanguageManager.fileNameFor(languageCode);
+        if (BUNDLED_LANGUAGE_CODES.contains(languageCode) || !hasBundledResource(fileName)) {
+            return;
+        }
+        updateYamlWithMissingSections(fileName, true);
+    }
+
+    private boolean hasBundledResource(String fileName) {
+        try (InputStream stream = getResource(fileName)) {
+            return stream != null;
+        } catch (IOException exception) {
+            getLogger().log(Level.WARNING, "Failed to inspect bundled resource " + fileName + ".", exception);
+            return false;
+        }
     }
 
     private void updateYamlWithMissingSections(String fileName, boolean saveDefaultWhenMissing) {
@@ -292,6 +377,7 @@ public class BetterHorses extends JavaPlugin {
         pluginManager.registerEvents(new HorseMountListener(), this);
         pluginManager.registerEvents(new NeuterToolListener(neuterToolService), this);
         pluginManager.registerEvents(new HorseStatsBookListener(horseStatsBookService), this);
+        pluginManager.registerEvents(new HorseUpgradeListener(this, tandemRideManager), this);
 
         if (config.getBoolean("horse-summon.enabled", true)) {
             HorseSummonService summonService = new HorseSummonService(this, horseSummonRepository);

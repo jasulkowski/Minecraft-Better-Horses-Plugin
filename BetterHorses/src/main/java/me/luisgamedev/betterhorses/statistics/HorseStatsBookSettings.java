@@ -15,7 +15,7 @@ public record HorseStatsBookSettings(
 
     public static HorseStatsBookSettings load(BetterHorses plugin) {
         String basePath = "statistics.book";
-        String displayName = plugin.getConfig().getString(basePath + ".name", "&6Horse Record Book");
+        String displayName = plugin.getLang().getRaw("messages.statistics.book-name");
         double price = Math.max(0.0D, plugin.getConfig().getDouble(basePath + ".price", 0.0D));
 
         Optional<Integer> customModelData = Optional.empty();

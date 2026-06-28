@@ -108,7 +108,11 @@ public final class NeuterToolService {
         NeuterToolSettings settings = NeuterToolSettings.load(plugin);
 
         if (!player.hasPermission("betterhorses.neuter")) {
-            lang.sendFormatted(player, "messages.insufficient-permission", "%command%", "veterinary shears");
+            lang.sendFormatted(
+                    player,
+                    "messages.insufficient-permission",
+                    "%command%", lang.getRaw(player, "messages.permission-targets.veterinary-shears")
+            );
             return;
         }
 

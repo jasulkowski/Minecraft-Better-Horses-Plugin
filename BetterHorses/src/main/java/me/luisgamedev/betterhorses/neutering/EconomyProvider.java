@@ -13,6 +13,8 @@ public interface EconomyProvider {
 
     boolean withdraw(Player player, double amount);
 
+    boolean deposit(Player player, double amount);
+
     String format(double amount);
 
     static EconomyProvider unavailable() {
@@ -34,6 +36,11 @@ public interface EconomyProvider {
 
         @Override
         public boolean withdraw(Player player, double amount) {
+            return amount <= 0.0D;
+        }
+
+        @Override
+        public boolean deposit(Player player, double amount) {
             return amount <= 0.0D;
         }
 

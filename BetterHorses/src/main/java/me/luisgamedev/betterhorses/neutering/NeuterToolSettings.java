@@ -20,7 +20,7 @@ public record NeuterToolSettings(
         FileConfiguration config = plugin.getConfig();
         String path = "neutering.tool.";
 
-        String displayName = config.getString(path + "name", "&cVeterinary Shears");
+        String displayName = plugin.getLang().getRaw("messages.neutering.tool-name");
         double price = Math.max(0.0D, config.getDouble(path + "price", 0.0D));
         int uses = Math.max(1, config.getInt(path + "uses", 1));
         boolean requireOwner = config.getBoolean("neutering.require-owner", true);

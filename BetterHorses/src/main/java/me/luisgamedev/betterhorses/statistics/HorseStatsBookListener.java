@@ -38,7 +38,10 @@ public final class HorseStatsBookListener implements Listener {
             BetterHorses.getInstance().getLang().sendFormatted(
                     player,
                     "messages.insufficient-permission",
-                    "%command%", "horse inspection book"
+                    "%command%", BetterHorses.getInstance().getLang().getRaw(
+                            player,
+                            "messages.permission-targets.inspection-book"
+                    )
             );
             return;
         }

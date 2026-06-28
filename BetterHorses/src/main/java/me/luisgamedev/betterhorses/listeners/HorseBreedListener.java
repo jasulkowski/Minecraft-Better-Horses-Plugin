@@ -133,16 +133,20 @@ public class HorseBreedListener implements Listener {
         setSpeed(child, childSpeed);
         setJump(child, childJump);
 
-        child.getPersistentDataContainer().set(BetterHorseKeys.GENDER, PersistentDataType.STRING, gender);
-        child.getPersistentDataContainer().set(BetterHorseKeys.GROWTH_STAGE, PersistentDataType.INTEGER, 1);
-        HorseIdentity.ensureHorseId(child.getPersistentDataContainer());
+        PersistentDataContainer childData = child.getPersistentDataContainer();
+        childData.set(BetterHorseKeys.BASE_HEALTH, PersistentDataType.DOUBLE, childHealth);
+        childData.set(BetterHorseKeys.BASE_SPEED, PersistentDataType.DOUBLE, childSpeed);
+        childData.set(BetterHorseKeys.BASE_JUMP, PersistentDataType.DOUBLE, childJump);
+        childData.set(BetterHorseKeys.GENDER, PersistentDataType.STRING, gender);
+        childData.set(BetterHorseKeys.GROWTH_STAGE, PersistentDataType.INTEGER, 1);
+        HorseIdentity.ensureHorseId(childData);
 
         if (MountConfig.isGrowthEnabled(config, childType)) {
             child.setAgeLock(true);
         }
 
         if (selectedTrait != null && !selectedTrait.isBlank()) {
-            child.getPersistentDataContainer().set(BetterHorseKeys.TRAIT, PersistentDataType.STRING, selectedTrait.toLowerCase());
+            childData.set(BetterHorseKeys.TRAIT, PersistentDataType.STRING, selectedTrait.toLowerCase());
         }
 
         // Apply cooldown to both parents
@@ -193,18 +197,24 @@ public class HorseBreedListener implements Listener {
     }
 
     private double getHealth(AbstractHorse horse) {
+        PersistentDataContainer data = horse.getPersistentDataContainer();
         AttributeInstance attribute = horse.getAttribute(AttributeResolver.generic("MAX_HEALTH"));
-        return attribute != null ? attribute.getBaseValue() : 0.0;
+        double current = attribute != null ? attribute.getBaseValue() : 0.0;
+        return data.getOrDefault(BetterHorseKeys.BASE_HEALTH, PersistentDataType.DOUBLE, current);
     }
 
     private double getSpeed(AbstractHorse horse) {
+        PersistentDataContainer data = horse.getPersistentDataContainer();
         AttributeInstance attribute = horse.getAttribute(AttributeResolver.generic("MOVEMENT_SPEED"));
-        return attribute != null ? attribute.getBaseValue() : 0.0;
+        double current = attribute != null ? attribute.getBaseValue() : 0.0;
+        return data.getOrDefault(BetterHorseKeys.BASE_SPEED, PersistentDataType.DOUBLE, current);
     }
 
     private double getJump(AbstractHorse horse) {
+        PersistentDataContainer data = horse.getPersistentDataContainer();
         AttributeInstance attribute = horse.getAttribute(Attribute.valueOf("HORSE_JUMP_STRENGTH"));
-        return attribute != null ? attribute.getBaseValue() : 0.0;
+        double current = attribute != null ? attribute.getBaseValue() : 0.0;
+        return data.getOrDefault(BetterHorseKeys.BASE_JUMP, PersistentDataType.DOUBLE, current);
     }
 
     private void setHealth(AbstractHorse horse, double value) {

@@ -1,0 +1,364 @@
+prefix: "&7[&6BetterHorses&7] "
+
+messages:
+  horse: "Лошадь"
+  camel: "Верблюд"
+  horse-item-name: "<gold>%name% %gender%</gold>"
+  lore-gender: "Пол: %value%"
+  insufficient-permission: "У тебя нет разрешения на использование %command%."
+  permission-targets:
+    veterinary-shears: "ветеринарных ножниц"
+    inspection-book: "книги учёта лошади"
+    horse-summon: "призыва лошади"
+  horse-usage: "Использование: /horse <spawn|stats|book|neuter|upgrades|upgrade|reload|info*>"
+  already-castrated: "Эта лошадь уже кастрирована."
+  successfully-castrated: "Лошадь %horse% кастрирована. Теперь она не может размножаться."
+  neutered-cannot-breed: "Эта лошадь кастрирована и не может размножаться."
+  horse-respawned: "%mount% восстановлен с сохранёнными характеристиками."
+  invalid-horse-data: "Этот предмет не содержит корректных данных существа: %mount%."
+  not-horse-owner: "Ты не являешься владельцем этого существа: %mount%."
+  unknown-subcommand: "Неизвестная подкоманда. Используй /horse <spawn|stats|book|neuter|upgrades|upgrade|reload>"
+  only-players: "Эту команду могут использовать только игроки."
+  horsecreate-usage: "Использование: /horsecreate <здоровье> <скорость> <прыжок> [пол] [имя] [трейт] [рост] [тип] [кастрирован]"
+  traits-disabled: "Трейты отключены в конфигурации."
+  traits-error: "Этот трейт не существует или отключён в конфигурации."
+  invalid-mount-type: "Неизвестный тип ездового животного. Доступные типы: %types%."
+  mount-type-disabled: "Этот тип ездового животного отключён в конфигурации."
+  invalid-number-format: "Неверный формат числа."
+  invalid-item: "В основной руке должен находиться корректный предмет лошади."
+  cant-spawn: "Здесь нельзя призвать лошадь."
+  config-reloaded: "Конфигурация и языковые файлы успешно перезагружены."
+  trait-line: "Трейт: %trait%"
+  gender-male: "♂"
+  gender-female: "♀"
+  lore-speed: "Скорость: %value%"
+  lore-jump: "Прыжок: %value%"
+  lore-health: "Здоровье: %value% / %max%"
+  lore-neutered: "⚠ Кастрирована — не может размножаться"
+
+  neutering:
+    tool-name: "&cВетеринарные ножницы"
+    tool-received: "Ты получил ветеринарные ножницы на %uses% использований. Цена: %price%."
+    tool-lore:
+      - "&7Специальный ветеринарный инструмент"
+      - "&7Shift + ПКМ по своей лошади"
+      - "&7Осталось использований: &e%uses%"
+    economy-unavailable: "Для ножниц задана цена, но поставщик экономики Vault недоступен."
+    not-enough-money: "Для покупки ветеринарных ножниц необходимо %price%."
+    payment-failed: "Не удалось выполнить оплату. Предмет не был выдан."
+    horse-not-tamed: "Перед кастрацией лошадь необходимо приручить."
+
+  statistics:
+    book-name: "&6Книга учёта лошади"
+    book-received: "Ты получил книгу учёта лошади. Цена: %price%."
+    book-lore:
+      - "&7Shift + ПКМ по лошади"
+      - "&7для просмотра характеристик и способностей"
+    economy-unavailable: "Для книги задана цена, но поставщик экономики Vault недоступен."
+    not-enough-money: "Для покупки книги учёта необходимо %price%."
+    payment-failed: "Не удалось выполнить оплату. Книга не была выдана."
+    not-riding: "Для использования /horse stats необходимо сидеть на лошади."
+    invalid-horse: "Для этого ездового животного статистика недоступна."
+    virtual-title: "%horse%"
+    virtual-author: "BetterHorses"
+    virtual-header: "&6%horse%"
+    abilities-header: "&6Особые способности"
+    passive-label: "&2Пассивная способность:"
+    active-label: "&cАктивная способность (F):"
+    active-hint: "&8Нажми F во время езды, чтобы активировать её."
+    other-label: "&bДругие способности:"
+    other-ability-line: "&0• %ability%"
+    other-ability-level: "&0• %ability% &8(уровень %level%)"
+    abilities-none: "&8Нет"
+
+  upgrades:
+    usage: "Использование: /horse upgrade <улучшение>"
+    admin-usage: "Использование: /horse upgrade <set|remove> <улучшение> [уровень]"
+    disabled: "&cУлучшения лошадей отключены или не настроены."
+    not-riding: "&cНеобходимо сидеть на лошади, которую ты хочешь улучшить."
+    not-owner: "&cМожно улучшать только собственную лошадь."
+    unknown: "&cНеизвестное или отключённое улучшение: &e%upgrade%&c."
+    already-max: "&e%upgrade% &cуже имеет максимальный уровень."
+    level-not-configured: "&cУровень %level% улучшения %upgrade% не настроен."
+    economy-unavailable: "&cДля этого улучшения нужны деньги, но поставщик экономики Vault недоступен."
+    not-enough-money: "&cДля покупки улучшения необходимо &e%money%&c."
+    missing-items: "&cНе хватает необходимых предметов: &e%items%&c."
+    transaction-failed: "&cНе удалось выполнить улучшение. Деньги и предметы не были потеряны."
+    purchased: "&aУлучшение %upgrade% повышено до уровня &e%level%&a. Оплачено: &e%money%&a; предметы: &e%items%&a."
+    list-header: "&6Улучшения лошади %horse%:"
+    list-entry: "&7- %upgrade% &f%level%/%max% &8— &7%status%"
+
+    # Виртуальная книга, открываемая командой /horse upgrades.
+    book-title: "Улучшения %horse%"
+    book-author: "BetterHorses"
+    book-header: "&6Улучшения лошади\n&8%horse%"
+    book-introduction:
+      - "&0Постоянные улучшения принадлежат только этой лошади."
+      - "&8Они не изменяют генетику и не наследуются жеребятами."
+    book-progress: "&2Прогресс\n&0Разблокировано: &2%unlocked%&0/%available%\n&0Уровней: &2%levels%&0/%max-levels%"
+    book-navigation: "&8Листай дальше, чтобы посмотреть описание, уровни, стоимость и команды покупки."
+    book-upgrade-header: "&6%upgrade%\n&8ID: %id%"
+    book-current-level: "&1Текущий уровень: &0%level%/%max%"
+    book-levels-header: "&6Уровни"
+    book-level-line: "%state% &0Уровень %level%: %effect%"
+    book-level-cost: "&8Стоимость: %cost%"
+    book-level-unconfigured: "&cУровень %level% не настроен."
+    book-state-unlocked: "&2✓"
+    book-state-next: "&e→"
+    book-state-locked: "&8•"
+    book-effect-fallback: "&0Значение эффекта: %effect%"
+    book-maximum-reached: "&2Достигнут максимальный уровень."
+    book-purchase-hint: "&8Купить следующий уровень:\n&0/horse upgrade %upgrade%"
+    max-level-status: "&aМаксимальный уровень"
+    not-configured-status: "&cСледующий уровень не настроен"
+    free: "бесплатно"
+    no-items: "без предметов"
+    cost-format: "&e%money% &7+ &e%items%"
+    item-format: "%amount%x %item%%model%"
+    custom-model-suffix: " &8[CMD %model%]"
+    item-separator: ", "
+    admin-set: "&aУлучшение %upgrade% установлено на уровень &e%level%&a для лошади, на которой ты сидишь."
+    tandem-occupied: "&cНа этой лошади уже находится второй пассажир."
+    loyal-mount-denied: "&cЭта верная лошадь позволяет садиться только своему владельцу."
+    tandem-failed: "&cНе удалось создать место для второго пассажира."
+    tandem-mounted: "&aТы занял место второго пассажира. Нажми Shift, чтобы слезть."
+
+  lore-growth: "Рост: %value%0%"
+  cooldown-message-bossbar: "&e%value% &7Перезарядка"
+  cooldown-message-hotbar: "&e%value% &7Перезарядка: &f%remaining% с"
+
+  summon:
+    bound: "&aГорн привязан к лошади &e%horse%&a. Используй его, чтобы призвать её."
+    rebound: "&aК лошади &e%horse% &aпривязан новый горн. Все старые горны для неё теперь неактивны."
+    success: "&aТы призвал лошадь &e%horse%&a."
+    failed: "&cНе удалось призвать это ездовое животное сюда."
+    not-owner: "&cЭто ездовое животное тебе не принадлежит."
+    not-horn-owner: "&cЭтот горн привязан к другому игроку."
+    not-found: "&cНе удалось найти ездовое животное. Одно использование горна потрачено."
+    inactive-horn: "&cЭтот горн больше неактивен. Животное уже привязано к другому горну."
+    no-uses: "&cУ этого горна не осталось использований."
+    uses-depleted: "&cГорн, привязанный к лошади &e%horse%&c, сломался. Ей необходим новый горн."
+    searching: "&7Призываем ездовое животное..."
+    disabled-world: "&cВ этом мире нельзя призывать ездовых животных: &e%world%&c."
+    has-passenger: "&cНельзя призвать животное, пока на нём находится другой игрок."
+    cooldown: "&eПодожди %seconds% с перед следующим призывом."
+    cooldown-actionbar: "&eПерезарядка горна: &f%seconds% с"
+    invalid-horn: "&cЭтот горн не может хранить данные ездового животного."
+    unbound-horn: "&cЭтот горн не привязан ни к одному ездовому животному."
+    already-bound-horn: "&cЭтот горн уже привязан, его нельзя привязать повторно."
+    binding-in-progress: "&eК этому животному уже привязывается горн. Подожди."
+    binding-cancelled: "&cПривязка отменена, потому что горн был перемещён или заменён."
+    horn-name: "&6Горн лошади %horse%"
+    horn-lore-owner: "&7Владелец: &f%player%"
+    horn-lore-use: "&7Нажми ПКМ, чтобы призвать &e%horse%&7."
+    horn-lore-uses: "&7Осталось использований: &e%uses%"
+
+  # Отладочный вывод /horse info.
+  horse-info:
+    item:
+      - "&6------ Отладка предмета BetterHorses ------"
+      - "&eТип: &f%item_type%"
+      - "&eКоличество: &f%item_amount%"
+      - "&eОтображаемое имя: &f%item_display_name%"
+      - "&eНеразрушимый: &f%item_unbreakable%"
+      - "%item_damage_line%"
+      - "&eCustomModelData: &f%item_custom_model_data%"
+      - "%item_lore%"
+      - "%item_flags%"
+      - "%persistent_data%"
+      - "&e%known_values_title%:"
+      - "%known_values%"
+    mounted-horse:
+      - "&6------ Отладка лошади BetterHorses ------"
+      - "&eСущность: &f%entity_type%"
+      - "&eUUID: &f%entity_uuid%"
+      - "&eПриручена: &f%tamed%"
+      - "&eВладелец: &f%owner%"
+      - "&eЗдоровье: &f%health%"
+      - "&eСкорость: &f%speed%"
+      - "&eПрыжок: &f%jump%"
+      - "&eТрейт: &f%trait%"
+      - "&eПол: &f%gender%"
+      - "&eСтадия роста: &f%growth_stage%"
+      - "&eКастрирована: &f%neutered%"
+      - "&e%known_values_title%:"
+      - "%known_values%"
+    no-target:
+      - "&cВозьми предмет лошади в основную руку или сначала сядь на лошадь."
+
+traits:
+  hellmare: "Адская кобыла"
+  hellmare-message: "Адская поступь активирована!"
+
+  fireheart: "Огненное сердце"
+
+  dashboost: "Рывок"
+  dashboost-message: "Рывок активирован!"
+
+  featherhooves: "Перьевые копыта"
+
+  frosthooves: "Ледяные копыта"
+
+  heavenhooves: "Небесные копыта"
+
+  kickback: "Отбрасывание"
+  kickback-message: "Отбрасывание активировано!"
+
+  ghosthorse: "Призрачная лошадь"
+  ghosthorse-message: "Ты и твоя лошадь стали призрачными..."
+
+  skyburst: "Небесный взрыв"
+
+  revenantcurse: "Проклятие ревенанта"
+  revenantcurse-message: "Проклятие активировано. Нападающие пострадают."
+
+# Отображаемые названия постоянных способностей.
+abilities:
+  stable_speed: "Тренировка скорости"
+  vitality: "Закалка"
+  jump_training: "Тренировка прыжка"
+  tandem_seat: "Парная езда"
+  sure_footed: "Уверенный шаг"
+  cargo_bags: "Седельные сумки"
+  strong_swimmer: "Хороший пловец"
+  horn_mastery: "Мастерство горна"
+  loyal_mount: "Верная лошадь"
+
+# Перевод отображаемых данных постоянных улучшений.
+# Механические значения, цены, материалы и CustomModelData находятся в config.yml.
+# Названия предметов сопоставляются с их порядком в списке items соответствующего уровня.
+upgrade-definitions:
+  stable_speed:
+    display-name: "&bТренировка скорости"
+    description:
+      - "&0Профессиональные тренировки навсегда увеличивают скорость движения."
+      - "&8Бонус не изменяет генетику и не наследуется жеребятами."
+    levels:
+      1:
+        effect-description: "&0+5% к скорости движения"
+        item-names:
+          - "&fСахар"
+      2:
+        effect-description: "&0+10% к скорости движения"
+        item-names:
+          - "&fСахар"
+      3:
+        effect-description: "&0+15% к скорости движения"
+        item-names:
+          - "&fСахар"
+
+  vitality:
+    display-name: "&cЗакалка"
+    description:
+      - "&0Улучшает физическую форму лошади и её максимальное здоровье."
+      - "&8Текущее здоровье после каждого изменения ограничивается новым максимумом."
+    levels:
+      1:
+        effect-description: "&0+2 к максимальному здоровью"
+        item-names:
+          - "&cЯблоко"
+      2:
+        effect-description: "&0+4 к максимальному здоровью"
+        item-names:
+          - "&6Золотая морковь"
+      3:
+        effect-description: "&0+6 к максимальному здоровью"
+        item-names:
+          - "&6Золотое яблоко"
+
+  jump_training:
+    display-name: "&aТренировка прыжка"
+    description:
+      - "&0Усиливает технику прыжка, не изменяя наследуемые характеристики."
+      - "&8Высокие уровни позволяют преодолевать более высокие препятствия."
+    levels:
+      1:
+        effect-description: "&0+5% к силе прыжка"
+        item-names:
+          - "&aСгусток слизи"
+      2:
+        effect-description: "&0+10% к силе прыжка"
+        item-names:
+          - "&eКроличья лапка"
+      3:
+        effect-description: "&0+15% к силе прыжка"
+        item-names:
+          - "&eКроличья лапка"
+
+  sure_footed:
+    display-name: "&eУверенный шаг"
+    description:
+      - "&0Уменьшает урон от падения для лошади и её всадников."
+      - "&8Максимальный уровень полностью защищает от падений."
+    levels:
+      1:
+        effect-description: "&0Уменьшает урон от падения на 25%"
+        item-names:
+          - "&fПеро"
+      2:
+        effect-description: "&0Уменьшает урон от падения на 50%"
+        item-names:
+          - "&fПеро"
+      3:
+        effect-description: "&0Полностью предотвращает урон от падения"
+        item-names:
+          - "&dМембрана фантома"
+
+  tandem_seat:
+    display-name: "&6Парная езда"
+    description:
+      - "&0Добавляет второе место позади основного всадника."
+      - "&8Другой игрок может нажать ПКМ по занятой лошади и сесть пассажиром."
+    levels:
+      1:
+        effect-description: "&0Открывает место для второго пассажира"
+        item-names:
+          - "&6Седло"
+          - "&6Комплект второго сиденья"
+
+  horn_mastery:
+    display-name: "&dМастерство горна"
+    description:
+      - "&0Усиливает связь между лошадью и её призывным горном."
+      - "&8Каждый уровень уменьшает перезарядку призыва этой лошади."
+    levels:
+      1:
+        effect-description: "&0Уменьшает перезарядку горна на 10%"
+        item-names:
+          - "&6Медный слиток"
+      2:
+        effect-description: "&0Уменьшает перезарядку горна на 20%"
+        item-names:
+          - "&6Медный слиток"
+      3:
+        effect-description: "&0Уменьшает перезарядку горна на 30%"
+        item-names:
+          - "&eКозий рог"
+
+  loyal_mount:
+    display-name: "&9Верная лошадь"
+    description:
+      - "&0Лошадь принимает в качестве всадника только своего владельца."
+      - "&8Игроки с административным разрешением обхода не ограничиваются."
+    levels:
+      1:
+        effect-description: "&0Только владелец может ездить на этой лошади"
+        item-names:
+          - "&fБирка"
+          - "&fЖелезный слиток"
+
+training-lore:
+  title: "&6Тренировка"
+  complete: "завершено"
+  progress-bar:
+    filled-char: "■"
+    empty-char: "■"
+    filled-color: "&b"
+    empty-color: "&8"
+  categories:
+    riding-name: "&7Езда:"
+    brushing-name: "&7Чистка:"
+    feeding-name: "&7Кормление:"
+    riding: "&7Езда: %bar% &b%percent%%"
+    brushing: "&7Чистка: %bar% &b%percent%%"
+    feeding: "&7Кормление: %bar% &b%percent%%"

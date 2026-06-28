@@ -6,6 +6,10 @@ messages:
   horse-item-name: "<gold>%name% %gender%</gold>"
   lore-gender: "Gender: %value%"
   insufficient-permission: "You don't have permission to use %command%."
+  permission-targets:
+    veterinary-shears: "veterinary shears"
+    inspection-book: "horse inspection book"
+    horse-summon: "horse summoning"
   horse-usage: "Usage: /horse <spawn|stats|book|neuter|upgrades|upgrade|reload|info*>"
   already-castrated: "This horse is already castrated."
   successfully-castrated: "You castrated %horse%. It can no longer breed."
@@ -33,6 +37,7 @@ messages:
   lore-neutered: "⚠ Castrated – Cannot breed"
 
   neutering:
+    tool-name: "&cVeterinary Shears"
     tool-received: "You received veterinary shears with %uses% use(s). Price: %price%."
     tool-lore:
       - "&7Special veterinary instrument"
@@ -44,6 +49,7 @@ messages:
     horse-not-tamed: "This horse must be tamed before it can be castrated."
 
   statistics:
+    book-name: "&6Horse Record Book"
     book-received: "You received a horse record book. Price: %price%."
     book-lore:
       - "&7Sneak + Right-click a horse"
@@ -223,6 +229,130 @@ abilities:
   strong_swimmer: "Strong Swimmer"
   horn_mastery: "Horn Mastery"
   loyal_mount: "Loyal Mount"
+
+
+# Translated presentation of configurable permanent upgrades.
+# Mechanical values, prices, required materials and CustomModelData remain in config.yml.
+# Item names are matched by their zero-based order in the corresponding config item list.
+upgrade-definitions:
+  stable_speed:
+    display-name: "&bStable Speed Training"
+    description:
+      - "&0Professional conditioning permanently increases movement speed."
+      - "&8The bonus does not change genetics and is not inherited by foals."
+    levels:
+      1:
+        effect-description: "&0+5% movement speed"
+        item-names:
+          - "&fSugar"
+      2:
+        effect-description: "&0+10% movement speed"
+        item-names:
+          - "&fSugar"
+      3:
+        effect-description: "&0+15% movement speed"
+        item-names:
+          - "&fSugar"
+
+  vitality:
+    display-name: "&cVitality Training"
+    description:
+      - "&0Improves the horse's physical condition and maximum health."
+      - "&8Current health is kept within the new maximum after every change."
+    levels:
+      1:
+        effect-description: "&0+2 maximum health"
+        item-names:
+          - "&cApple"
+      2:
+        effect-description: "&0+4 maximum health"
+        item-names:
+          - "&6Golden Carrot"
+      3:
+        effect-description: "&0+6 maximum health"
+        item-names:
+          - "&6Golden Apple"
+
+  jump_training:
+    display-name: "&aJump Training"
+    description:
+      - "&0Strengthens jumping technique without modifying inherited stats."
+      - "&8Higher levels allow the horse to clear taller obstacles."
+    levels:
+      1:
+        effect-description: "&0+5% jump strength"
+        item-names:
+          - "&aSlime Ball"
+      2:
+        effect-description: "&0+10% jump strength"
+        item-names:
+          - "&eRabbit's Foot"
+      3:
+        effect-description: "&0+15% jump strength"
+        item-names:
+          - "&eRabbit's Foot"
+
+  sure_footed:
+    display-name: "&eSure-Footed"
+    description:
+      - "&0Reduces fall damage suffered by the horse and its riders."
+      - "&8The highest level grants complete protection from falling."
+    levels:
+      1:
+        effect-description: "&0Reduces fall damage by 25%"
+        item-names:
+          - "&fFeather"
+      2:
+        effect-description: "&0Reduces fall damage by 50%"
+        item-names:
+          - "&fFeather"
+      3:
+        effect-description: "&0Prevents all fall damage"
+        item-names:
+          - "&dPhantom Membrane"
+
+  tandem_seat:
+    display-name: "&6Tandem Riding"
+    description:
+      - "&0Adds a second seat behind the main rider."
+      - "&8Another player can right-click the occupied horse to ride along."
+    levels:
+      1:
+        effect-description: "&0Unlocks a second passenger seat"
+        item-names:
+          - "&6Saddle"
+          - "&6Tandem Seat Kit"
+
+  horn_mastery:
+    display-name: "&dHorn Mastery"
+    description:
+      - "&0Improves the bond between the horse and its summoning horn."
+      - "&8Each level shortens the horse-specific summon cooldown."
+    levels:
+      1:
+        effect-description: "&0Reduces horn cooldown by 10%"
+        item-names:
+          - "&6Copper Ingot"
+      2:
+        effect-description: "&0Reduces horn cooldown by 20%"
+        item-names:
+          - "&6Copper Ingot"
+      3:
+        effect-description: "&0Reduces horn cooldown by 30%"
+        item-names:
+          - "&eGoat Horn"
+
+  loyal_mount:
+    display-name: "&9Loyal Mount"
+    description:
+      - "&0The horse accepts only its owner as a rider."
+      - "&8Players with administrative bypass permission remain unaffected."
+    levels:
+      1:
+        effect-description: "&0Only the owner may ride this horse"
+        item-names:
+          - "&fName Tag"
+          - "&fIron Ingot"
 
 training-lore:
   title: "&6Training"

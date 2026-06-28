@@ -4,6 +4,7 @@ import me.luisgamedev.betterhorses.BetterHorses;
 import me.luisgamedev.betterhorses.api.BetterHorseKeys;
 import me.luisgamedev.betterhorses.language.LanguageManager;
 import me.luisgamedev.betterhorses.training.TrainingManager;
+import me.luisgamedev.betterhorses.upgrades.HorseUpgradeEffects;
 import me.luisgamedev.betterhorses.utils.SupportedMountType;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -533,6 +534,7 @@ public final class HorseSummonService {
                 .orElseGet(() -> player.getLocation().clone());
 
         Location from = horse.getLocation().clone();
+        plugin.getTandemRideManager().removeByHorse(horse.getUniqueId());
         horse.eject();
         boolean teleported = horse.teleport(target);
         if (!teleported) {
@@ -549,7 +551,7 @@ public final class HorseSummonService {
         // success action bar from immediately hiding it.
         notify(player, settings, "messages.summon.success", "%horse%", resolveHorseName(horse));
         consumeUse(player, horn, data, settings);
-        applyCooldown(player, settings);
+        applyCooldown(player, settings, horse);
 
         from.getWorld().spawnParticle(Particle.CLOUD, from.add(0.0D, 0.6D, 0.0D), 16, 0.45D, 0.35D, 0.45D, 0.02D);
         target.getWorld().spawnParticle(Particle.CLOUD, target.clone().add(0.0D, 0.6D, 0.0D), 24, 0.55D, 0.35D, 0.55D, 0.02D);
@@ -599,8 +601,19 @@ public final class HorseSummonService {
         );
     }
 
-    private void applyCooldown(Player player, HorseSummonSettings settings) {
-        int cooldownSeconds = resolveCooldownSeconds(player, settings);
+    private void applyCooldown(Player player, HorseSummonSettings settings, AbstractHorse horse) {
+        int baseCooldownSeconds = resolveCooldownSeconds(player, settings);
+        if (baseCooldownSeconds <= 0) {
+            return;
+        }
+
+        double configuredReduction = HorseUpgradeEffects.effect(
+                plugin.getConfig(),
+                horse.getPersistentDataContainer(),
+                HorseUpgradeEffects.HORN_MASTERY
+        );
+        double reduction = Math.max(0.0D, Math.min(0.95D, configuredReduction));
+        int cooldownSeconds = (int) Math.ceil(baseCooldownSeconds * (1.0D - reduction));
         if (cooldownSeconds <= 0) {
             return;
         }
@@ -934,7 +947,8 @@ public final class HorseSummonService {
     }
 
     private boolean hasPlayerPassenger(AbstractHorse horse) {
-        return horse.getPassengers().stream().anyMatch(Player.class::isInstance);
+        return horse.getPassengers().stream().anyMatch(Player.class::isInstance)
+                || plugin.getTandemRideManager().hasPassenger(horse);
     }
 
     private boolean isRegisteredSummonHorse(AbstractHorse horse) {

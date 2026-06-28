@@ -2,6 +2,7 @@ package me.luisgamedev.betterhorses.training;
 
 import me.luisgamedev.betterhorses.BetterHorses;
 import me.luisgamedev.betterhorses.api.BetterHorseKeys;
+import me.luisgamedev.betterhorses.upgrades.HorseUpgradeEffects;
 import me.luisgamedev.betterhorses.utils.AttributeResolver;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -91,9 +92,19 @@ public final class TrainingManager {
         double jumpBonusPerPercent = config.getDouble("training.categories.brushing.bonus-percent-per-progress-percent", 0.2);
         double healthBonusPerPercent = config.getDouble("training.categories.feeding.bonus-percent-per-progress-percent", 0.2);
 
-        double boostedSpeed = baseSpeed * (1.0 + (ridingPercent * speedBonusPerPercent / 100.0));
-        double boostedJump = baseJump * (1.0 + (brushingPercent * jumpBonusPerPercent / 100.0));
-        double boostedHealth = baseHealth * (1.0 + (feedingPercent * healthBonusPerPercent / 100.0));
+        double speedUpgrade = HorseUpgradeEffects.effect(config, data, HorseUpgradeEffects.STABLE_SPEED);
+        double jumpUpgrade = HorseUpgradeEffects.effect(config, data, HorseUpgradeEffects.JUMP_TRAINING);
+        double vitalityUpgrade = HorseUpgradeEffects.effect(config, data, HorseUpgradeEffects.VITALITY);
+
+        double boostedSpeed = baseSpeed
+                * (1.0 + (ridingPercent * speedBonusPerPercent / 100.0))
+                * (1.0 + speedUpgrade);
+        double boostedJump = baseJump
+                * (1.0 + (brushingPercent * jumpBonusPerPercent / 100.0))
+                * (1.0 + jumpUpgrade);
+        double boostedHealth = baseHealth
+                * (1.0 + (feedingPercent * healthBonusPerPercent / 100.0))
+                + vitalityUpgrade;
 
         setAttribute(horse, Attribute.GENERIC_MOVEMENT_SPEED, boostedSpeed);
         setAttribute(horse, AttributeResolver.horseJumpStrength(), boostedJump);

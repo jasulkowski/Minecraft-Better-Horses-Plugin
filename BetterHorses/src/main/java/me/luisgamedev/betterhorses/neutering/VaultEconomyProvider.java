@@ -49,6 +49,15 @@ public final class VaultEconomyProvider implements EconomyProvider {
     }
 
     @Override
+    public boolean deposit(Player player, double amount) {
+        if (amount <= 0.0D) {
+            return true;
+        }
+        EconomyResponse response = economy.depositPlayer(player, amount);
+        return response.transactionSuccess();
+    }
+
+    @Override
     public String format(double amount) {
         return economy.format(amount);
     }

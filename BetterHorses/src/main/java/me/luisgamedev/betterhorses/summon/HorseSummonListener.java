@@ -47,7 +47,11 @@ public final class HorseSummonListener implements Listener {
             return;
         }
         if (!player.hasPermission("betterhorses.summon")) {
-            plugin.getLang().sendFormatted(player, "messages.insufficient-permission", "%command%", "horse summon");
+            plugin.getLang().sendFormatted(
+                    player,
+                    "messages.insufficient-permission",
+                    "%command%", plugin.getLang().getRaw(player, "messages.permission-targets.horse-summon")
+            );
             return;
         }
         if (!player.isSneaking()) {
@@ -76,7 +80,11 @@ public final class HorseSummonListener implements Listener {
             return;
         }
         if (!player.hasPermission("betterhorses.summon")) {
-            plugin.getLang().sendFormatted(player, "messages.insufficient-permission", "%command%", "horse summon");
+            plugin.getLang().sendFormatted(
+                    player,
+                    "messages.insufficient-permission",
+                    "%command%", plugin.getLang().getRaw(player, "messages.permission-targets.horse-summon")
+            );
             return;
         }
 
@@ -105,7 +113,11 @@ public final class HorseSummonListener implements Listener {
         }
 
         if (!player.hasPermission("betterhorses.summon")) {
-            plugin.getLang().sendFormatted(player, "messages.insufficient-permission", "%command%", "horse summon");
+            plugin.getLang().sendFormatted(
+                    player,
+                    "messages.insufficient-permission",
+                    "%command%", plugin.getLang().getRaw(player, "messages.permission-targets.horse-summon")
+            );
             return;
         }
 

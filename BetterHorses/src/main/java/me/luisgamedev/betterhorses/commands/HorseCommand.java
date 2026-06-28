@@ -13,15 +13,18 @@ public class HorseCommand implements CommandExecutor {
     private final HorseNeuterCommand horseNeuterCommand;
     private final HorseStatsCommand horseStatsCommand;
     private final HorseBookCommand horseBookCommand;
+    private final HorseUpgradeCommand horseUpgradeCommand;
 
     public HorseCommand(
             HorseNeuterCommand horseNeuterCommand,
             HorseStatsCommand horseStatsCommand,
-            HorseBookCommand horseBookCommand
+            HorseBookCommand horseBookCommand,
+            HorseUpgradeCommand horseUpgradeCommand
     ) {
         this.horseNeuterCommand = horseNeuterCommand;
         this.horseStatsCommand = horseStatsCommand;
         this.horseBookCommand = horseBookCommand;
+        this.horseUpgradeCommand = horseUpgradeCommand;
     }
 
     @Override
@@ -88,6 +91,12 @@ public class HorseCommand implements CommandExecutor {
                     return true;
                 }
                 return horseBookCommand.handle(player);
+
+            case "upgrades":
+                return horseUpgradeCommand.list(player);
+
+            case "upgrade":
+                return horseUpgradeCommand.handle(player, args);
 
             case "neuter":
                 if (!player.hasPermission("betterhorses.neuter")) {

@@ -87,7 +87,7 @@ public final class HorseUpgradeService {
         addPaginatedPages(meta, buildOverviewPage(player, horseName, data, definitions));
         for (HorseUpgradeDefinition definition : definitions) {
             if (definition.enabled()) {
-                addPaginatedPages(meta, buildUpgradePage(player, data, definition));
+                addUpgradePages(meta, player, data, definition);
             }
         }
 
@@ -307,7 +307,8 @@ public final class HorseUpgradeService {
         return page.toString();
     }
 
-    private String buildUpgradePage(
+    private void addUpgradePages(
+            BookMeta meta,
             Player player,
             PersistentDataContainer data,
             HorseUpgradeDefinition definition
@@ -318,38 +319,48 @@ public final class HorseUpgradeService {
                 HorseAbilityStorage.getLevel(data, definition.key())
         );
 
-        StringBuilder page = new StringBuilder();
-        page.append(lang.getFormattedRaw(
+        StringBuilder summary = new StringBuilder();
+        summary.append(lang.getFormattedRaw(
                 player,
                 "messages.upgrades.book-upgrade-header",
                 "%upgrade%", parseDisplayName(player, definition),
                 "%id%", definition.key()
         ));
-
         if (!definition.description().isEmpty()) {
-            page.append("\n\n");
-            appendConfiguredParagraphs(page, player, definition.description());
+            summary.append("\n\n");
+            appendConfiguredParagraphs(summary, player, definition.description());
         }
-
-        page.append("\n\n");
-        page.append(lang.getFormattedRaw(
+        summary.append("\n\n");
+        summary.append(lang.getFormattedRaw(
                 player,
                 "messages.upgrades.book-current-level",
                 "%level%", currentLevel,
                 "%max%", definition.maxLevel()
         ));
-        page.append("\n\n");
-        page.append(lang.getRaw(player, "messages.upgrades.book-levels-header"));
+        summary.append("\n\n");
+        summary.append(lang.getRaw(player, "messages.upgrades.book-navigation"));
+        addPaginatedPages(meta, summary.toString());
 
         for (int levelNumber = 1; levelNumber <= definition.maxLevel(); levelNumber++) {
-            page.append('\n');
+            StringBuilder levelPage = new StringBuilder();
+            levelPage.append(lang.getFormattedRaw(
+                    player,
+                    "messages.upgrades.book-upgrade-header",
+                    "%upgrade%", parseDisplayName(player, definition),
+                    "%id%", definition.key()
+            ));
+            levelPage.append("\n\n");
+            levelPage.append(lang.getRaw(player, "messages.upgrades.book-levels-header"));
+            levelPage.append('\n');
+
             HorseUpgradeLevel configuredLevel = definition.level(levelNumber).orElse(null);
             if (configuredLevel == null) {
-                page.append(lang.getFormattedRaw(
+                levelPage.append(lang.getFormattedRaw(
                         player,
                         "messages.upgrades.book-level-unconfigured",
                         "%level%", levelNumber
                 ));
+                addPaginatedPages(meta, levelPage.toString());
                 continue;
             }
 
@@ -370,32 +381,34 @@ public final class HorseUpgradeService {
                     )
                     : lang.parseToString(player, configuredLevel.effectDescription());
 
-            page.append(lang.getFormattedRaw(
+            levelPage.append(lang.getFormattedRaw(
                     player,
                     "messages.upgrades.book-level-line",
                     "%state%", lang.getRaw(player, stateKey),
                     "%level%", levelNumber,
                     "%effect%", effectDescription
             ));
-            page.append('\n');
-            page.append(lang.getFormattedRaw(
+            levelPage.append("\n\n");
+            levelPage.append(lang.getFormattedRaw(
                     player,
                     "messages.upgrades.book-level-cost",
                     "%cost%", formatCost(player, configuredLevel)
             ));
-        }
 
-        page.append("\n\n");
-        if (currentLevel >= definition.maxLevel()) {
-            page.append(lang.getRaw(player, "messages.upgrades.book-maximum-reached"));
-        } else {
-            page.append(lang.getFormattedRaw(
-                    player,
-                    "messages.upgrades.book-purchase-hint",
-                    "%upgrade%", definition.key()
-            ));
+            if (levelNumber == currentLevel + 1) {
+                levelPage.append("\n\n");
+                levelPage.append(lang.getFormattedRaw(
+                        player,
+                        "messages.upgrades.book-purchase-hint",
+                        "%upgrade%", definition.key()
+                ));
+            } else if (levelNumber == definition.maxLevel() && currentLevel >= definition.maxLevel()) {
+                levelPage.append("\n\n");
+                levelPage.append(lang.getRaw(player, "messages.upgrades.book-maximum-reached"));
+            }
+
+            addPaginatedPages(meta, levelPage.toString());
         }
-        return page.toString();
     }
 
     private void appendConfiguredParagraphs(StringBuilder target, Player player, List<String> lines) {

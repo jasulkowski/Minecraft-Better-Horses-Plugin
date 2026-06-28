@@ -53,8 +53,18 @@ public class HorseFeedListener implements Listener {
         final PersistentDataContainer data = horse.getPersistentDataContainer();
 
         if (HorseIdentity.isNeutered(data)) {
-            event.setCancelled(true);
-            BetterHorses.getInstance().getLang().send(player, "messages.neutered-cannot-breed");
+            // A castrated horse may still eat, heal and gain feeding training.
+            // Only breeding/love mode is blocked. Clear love mode on the next
+            // tick because vanilla applies the food interaction after this event.
+            BetterHorses.getInstance().getServer().getScheduler().runTask(
+                    BetterHorses.getInstance(),
+                    () -> {
+                        if (horse.isValid() && !horse.isDead()) {
+                            horse.setLoveModeTicks(0);
+                        }
+                    }
+            );
+            tryAddFeedingTraining(horse, data, config, feedingTrainingValue, now);
             return;
         }
 
@@ -101,7 +111,7 @@ public class HorseFeedListener implements Listener {
                     config.getLong("training.categories.feeding.cooldown-seconds", 0L) * 1000L);
             final long lastFeedTraining = data.getOrDefault(BetterHorseKeys.TRAINING_FEED_COOLDOWN, PersistentDataType.LONG, 0L);
 
-            if (trainingCooldownMillis == 0L || lastFeedTraining + trainingCooldownMillis > now) {
+            if (trainingCooldownMillis > 0L && lastFeedTraining + trainingCooldownMillis > now) {
                 return;
             }
 

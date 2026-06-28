@@ -160,9 +160,13 @@ public final class HorseStatsBookService {
         // training lore and an additional trait line could previously push the
         // neuter marker past Minecraft's page-length limit.
         String neuteredLine = null;
-        if (HorseIdentity.isNeutered(horse.getPersistentDataContainer())) {
-            neuteredLine = ChatColor.DARK_GRAY
-                    + plugin.getLang().getRaw(player, "messages.lore-neutered");
+        boolean neutered = HorseIdentity.isNeutered(horse.getPersistentDataContainer())
+                || HorseIdentity.isNeutered(previewMeta.getPersistentDataContainer());
+        if (neutered) {
+            neuteredLine = plugin.getLang().parseToString(
+                    player,
+                    plugin.getLang().getRaw(player, "messages.lore-neutered")
+            );
             page.append("\n\n").append(neuteredLine);
         }
 

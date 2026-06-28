@@ -5,6 +5,28 @@ command-aliases:
   # - bh
   # - horses
 
+
+# Physical veterinary shears used to neuter horses.
+neutering:
+  # When enabled, only the horse owner may use the veterinary shears.
+  require-owner: true
+  tool:
+    # Display name of the plugin-issued shears. Legacy color codes and MiniMessage are supported.
+    name: "&cVeterinary Shears"
+
+    # Price charged by a Vault-compatible economy when using /horse neuter.
+    # Set to 0 to give the item for free and allow use without Vault.
+    price: 0.0
+
+    # Number of successful operations before the item disappears.
+    uses: 1
+
+    # Optional resource-pack model. Ordinary shears never work as a neutering tool,
+    # regardless of their visual model; the plugin identifies its own item through PDC.
+    custom-model:
+      enabled: false
+      data: 10001
+
 # Extensive debugging for command flow and horse item metadata inspection
 debug:
   # When enabled, detailed BetterHorses debug logs are written to console

@@ -2,7 +2,7 @@ name: BetterHorses
 main: me.luisgamedev.betterhorses.BetterHorses
 version: 6.1
 api-version: 1.20
-softdepend: [ ProtocolLib, PlaceholderAPI ]
+softdepend: [ ProtocolLib, PlaceholderAPI, Vault ]
 
 libraries:
   - org.xerial:sqlite-jdbc:3.46.1.0
@@ -25,7 +25,7 @@ permissions:
     default: true
 
   betterhorses.neuter:
-    description: Allows using the /horse neuter command
+    description: Allows obtaining and using veterinary shears
     default: true
 
   betterhorses.create:

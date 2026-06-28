@@ -5,9 +5,14 @@ import com.comphenix.protocol.ProtocolManager;
 import me.luisgamedev.betterhorses.commands.CustomHorseCommand;
 import me.luisgamedev.betterhorses.commands.HorseCommand;
 import me.luisgamedev.betterhorses.commands.HorseCommandCompleter;
+import me.luisgamedev.betterhorses.commands.HorseNeuterCommand;
 import me.luisgamedev.betterhorses.commands.HorseCreateTabCompleter;
 import me.luisgamedev.betterhorses.growing.HorseGrowthManager;
 import me.luisgamedev.betterhorses.language.LanguageManager;
+import me.luisgamedev.betterhorses.neutering.EconomyProvider;
+import me.luisgamedev.betterhorses.neutering.NeuterToolListener;
+import me.luisgamedev.betterhorses.neutering.NeuterToolService;
+import me.luisgamedev.betterhorses.neutering.VaultEconomyProvider;
 import me.luisgamedev.betterhorses.listeners.HorseMountListener;
 import me.luisgamedev.betterhorses.listeners.*;
 import me.luisgamedev.betterhorses.tasks.TraitParticleTask;
@@ -43,6 +48,7 @@ public class BetterHorses extends JavaPlugin {
     private ProtocolManager protocolManager;
     private BukkitAudiences audiences;
     private HorseSummonRepository horseSummonRepository;
+    private NeuterToolService neuterToolService;
 
 
     @Override
@@ -72,13 +78,14 @@ public class BetterHorses extends JavaPlugin {
         languageManager = new LanguageManager(this, audiences);
         horseSummonRepository = new HorseSummonRepository(this);
         horseSummonRepository.initializeAsync();
+        neuterToolService = new NeuterToolService(this, initializeEconomyProvider());
 
         registerListeners();
 
         PluginCommand horseCommand = getCommand("horse");
         if (horseCommand != null) {
             horseCommand.setTabCompleter(new HorseCommandCompleter());
-            horseCommand.setExecutor(new HorseCommand());
+            horseCommand.setExecutor(new HorseCommand(new HorseNeuterCommand(neuterToolService)));
             applyHorseCommandAliases();
         }
         getCommand("horsecreate").setExecutor(new CustomHorseCommand());
@@ -246,6 +253,23 @@ public class BetterHorses extends JavaPlugin {
         debugLog("PLUGIN", "COMMAND_ALIAS", true, "Applied /horse aliases: " + aliases);
     }
 
+    private EconomyProvider initializeEconomyProvider() {
+        if (!getServer().getPluginManager().isPluginEnabled("Vault")) {
+            getLogger().info("Vault was not found. Veterinary shears remain available when their configured price is 0.");
+            return EconomyProvider.unavailable();
+        }
+
+        try {
+            return VaultEconomyProvider.create(this).orElseGet(() -> {
+                getLogger().warning("Vault is installed, but no economy provider is registered.");
+                return EconomyProvider.unavailable();
+            });
+        } catch (NoClassDefFoundError error) {
+            getLogger().warning("Vault was detected but its API was unavailable: " + error.getMessage());
+            return EconomyProvider.unavailable();
+        }
+    }
+
     private void registerListeners() {
         PluginManager pluginManager = getServer().getPluginManager();
         FileConfiguration config = getConfig();
@@ -255,6 +279,7 @@ public class BetterHorses extends JavaPlugin {
         pluginManager.registerEvents(new HorseFeedListener(), this);
         pluginManager.registerEvents(new HorseItemBlockerListener(), this);
         pluginManager.registerEvents(new HorseMountListener(), this);
+        pluginManager.registerEvents(new NeuterToolListener(neuterToolService), this);
 
         if (config.getBoolean("horse-summon.enabled", true)) {
             HorseSummonService summonService = new HorseSummonService(this, horseSummonRepository);

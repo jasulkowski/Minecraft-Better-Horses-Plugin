@@ -10,6 +10,12 @@ import org.bukkit.entity.Player;
 
 public class HorseCommand implements CommandExecutor {
 
+    private final HorseNeuterCommand horseNeuterCommand;
+
+    public HorseCommand(HorseNeuterCommand horseNeuterCommand) {
+        this.horseNeuterCommand = horseNeuterCommand;
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         BetterHorses plugin = BetterHorses.getInstance();
@@ -73,7 +79,7 @@ public class HorseCommand implements CommandExecutor {
                             "Player " + player.getName() + " lacks betterhorses.neuter");
                     return true;
                 }
-                return HorseNeuterCommand.handle(player);
+                return horseNeuterCommand.handle(player);
 
             case "info":
                 if (!plugin.isDebugModeEnabled()) {

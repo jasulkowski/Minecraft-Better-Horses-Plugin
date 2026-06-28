@@ -8,7 +8,7 @@ messages:
   insufficient-permission: "You don't have permission to use %command%."
   horse-usage: "Usage: /horse <spawn|despawn|neuter|reload|info*>"
   already-castrated: "This horse is already castrated."
-  successfully-castrated: "You castrated the horse. It can no longer breed."
+  successfully-castrated: "You castrated %horse%. It can no longer breed."
   neutered-cannot-breed: "This horse is castrated and cannot breed."
   horse-respawned: "%mount% respawned with stored stats."
   invalid-horse-data: "This item does not contain valid %mount% data."
@@ -34,6 +34,17 @@ messages:
   lore-jump: "Jump: %value%"
   lore-health: "Health: %value% / %max%"
   lore-neutered: "⚠ Castrated – Cannot breed"
+
+  neutering:
+    tool-received: "You received veterinary shears with %uses% use(s). Price: %price%."
+    tool-lore:
+      - "&7Special veterinary instrument"
+      - "&7Sneak + Right-click your horse"
+      - "&7Uses left: &e%uses%"
+    economy-unavailable: "The veterinary shears have a price, but no Vault economy provider is available."
+    not-enough-money: "You need %price% to buy veterinary shears."
+    payment-failed: "The payment could not be completed. No item was issued."
+    horse-not-tamed: "This horse must be tamed before it can be castrated."
   lore-growth: "Growth: %value%0%"
   cooldown-message-bossbar: "&e%value% &7Cooldown"
   cooldown-message-hotbar: "&e%value% &7Cooldown: &f%remaining%s"

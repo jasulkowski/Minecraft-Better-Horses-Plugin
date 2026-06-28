@@ -1,81 +1,21 @@
 package me.luisgamedev.betterhorses.commands;
 
-import me.luisgamedev.betterhorses.BetterHorses;
-import me.luisgamedev.betterhorses.api.BetterHorsesAPI;
-import me.luisgamedev.betterhorses.api.events.BetterHorseNeuterEvent;
-import me.luisgamedev.betterhorses.language.LanguageManager;
-import me.luisgamedev.betterhorses.utils.HorseIdentity;
-import org.bukkit.ChatColor;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.configuration.file.FileConfiguration;
+import me.luisgamedev.betterhorses.neutering.NeuterToolService;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.List;
+/**
+ * Gives or sells the physical veterinary shears item. Neutering itself is handled
+ * through Shift + right-click on a horse and is no longer performed by a command.
+ */
+public final class HorseNeuterCommand {
 
-public class HorseNeuterCommand {
+    private final NeuterToolService service;
 
-    public static boolean handle(Player player) {
-        LanguageManager lang = BetterHorses.getInstance().getLang();
+    public HorseNeuterCommand(NeuterToolService service) {
+        this.service = service;
+    }
 
-        if (!player.hasPermission("betterhorses.neuter")) {
-            lang.sendFormatted(player, "messages.insufficient-permission", "%command%", "/horse neuter");
-            BetterHorses.getInstance().debugLog("HORSE_NEUTER", "PERMISSION", false,
-                    "Player " + player.getName() + " lacks betterhorses.neuter");
-            return true;
-        }
-
-        ItemStack item = player.getInventory().getItemInMainHand();
-        FileConfiguration config = BetterHorses.getInstance().getConfig();
-        Material expected = Material.getMaterial(config.getString("settings.horse-item", "SADDLE").toUpperCase());
-
-        if (expected == null || item == null || item.getType() != expected || !item.hasItemMeta()
-                || !BetterHorsesAPI.isHorseItem(item)) {
-            lang.send(player, "messages.invalid-item");
-            BetterHorses.getInstance().debugLog("HORSE_NEUTER", "VALIDATION", false,
-                    "Player " + player.getName() + " did not hold a valid horse item.");
-            return true;
-        }
-
-        ItemMeta meta = item.getItemMeta();
-        BetterHorses.getInstance().debugLog("HORSE_NEUTER", "VALIDATION", true,
-                "Valid item detected for player " + player.getName());
-
-        if (HorseIdentity.isNeutered(meta.getPersistentDataContainer())) {
-            lang.send(player, "messages.already-castrated");
-            BetterHorses.getInstance().debugLog("HORSE_NEUTER", "ALREADY_NEUTERED", false,
-                    "Horse item is already neutered for player " + player.getName());
-            return true;
-        }
-
-        BetterHorseNeuterEvent neuterEvent = new BetterHorseNeuterEvent(player, item.clone());
-        Bukkit.getPluginManager().callEvent(neuterEvent);
-        if (neuterEvent.isCancelled()) {
-            BetterHorses.getInstance().debugLog("HORSE_NEUTER", "EVENT", false,
-                    "BetterHorseNeuterEvent was cancelled for player " + player.getName());
-            return true;
-        }
-
-        item = neuterEvent.getHorseItem();
-        meta = item.getItemMeta();
-
-        HorseIdentity.markNeutered(meta.getPersistentDataContainer());
-
-        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-        String neuteredLore = ChatColor.DARK_GRAY + lang.getRaw(player, "messages.lore-neutered");
-        if (!lore.contains(neuteredLore)) {
-            lore.add(neuteredLore);
-        }
-        meta.setLore(lore);
-
-        item.setItemMeta(meta);
-        player.getInventory().setItemInMainHand(item);
-        lang.send(player, "messages.successfully-castrated");
-        BetterHorses.getInstance().debugLog("HORSE_NEUTER", "COMPLETE", true,
-                "Horse item neutered and written back to main hand for player " + player.getName());
-        return true;
+    public boolean handle(Player player) {
+        return service.giveTool(player);
     }
 }

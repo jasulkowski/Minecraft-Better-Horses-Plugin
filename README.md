@@ -4,8 +4,6 @@
 
 ![1fbf8a99-e548-4b89-934b-9b5479828b7d](https://github.com/user-attachments/assets/45bc889b-419c-4bce-8957-99d857c79a00)
 
-If you have any questions or need help feel free to join my discord server: https://discord.gg/gBEKWGanM7
-
 ---
 
 ### ✨ Features
@@ -27,9 +25,16 @@ If you have any questions or need help feel free to join my discord server: http
   as well as the time it takes to grow up can be customized in the config
 
 - ✂️ **Castration System**  
-  Players can use `/horse neuter` to castrate a horse item.  
-  Castrated horses are marked and **cannot breed**, just like same-gender pairs.  
-  The status is permanently stored in the item and displayed in the lore.
+  Players can obtain special Veterinary Shears using /horse neuter.
+  To castrate a horse, hold the Veterinary Shears and use Sneak + Right Click on the horse.
+  Only plugin-issued Veterinary Shears work — regular shears have no effect.
+  Castration works regardless of the horse's gender, is permanent, and prevents that specific horse from breeding.
+  The shears have a configurable number of uses, price, name, and optional custom model.
+
+- 📊 **Horse Stats**
+  Players can inspect a horse's complete statistics through a virtual written book.
+  The book displays the horse's gender, health, speed, jump strength, growth status, training progress, trait, and castration status on a single page.
+  The virtual book disappears when closed and is never added to the player's inventory.
 
 - 🔥 **Horse Traits (Abilities)**  
   Horses can be born or created with **special traits** that provide passive or active effects such as:
@@ -49,25 +54,19 @@ If you have any questions or need help feel free to join my discord server: http
   - Enable/disable individual traits
   - Define duration, cooldown, radius, intensity and more
 
-- 🎒 **/horse despawn**  
-  Converts a **tamed horse you're riding** into a **saddle item** that stores:
-  - All core stats (including current HP)
-  - Gender
-  - Owner UUID
-  - Saddle & Armor
-  - Color & Style
-  - Trait
-  - Neutered status
-  - Custom name (if set)
-    
-  A horse can only be despawned by its owner.
 
 - ✂️ **/horse neuter**  
-  Castrates the horse item in your mainhand. Castration is permanent and cannot be undone. 
+  Gives or sells a pair of Veterinary Shears used for horse castration.
+  If the player's inventory is full, the item is dropped next to them.
 
-- 🧲 **/horse spawn**  
-  Spawns a horse **identical to the original** using the stored data in the horse item. 
-  Additionally a horse can be spawned by rightclicking while holding the horse item.
+- 📖 **/horse book**
+  Gives or sells a special Horse Record Book.
+  Hold the book and use Sneak + Right Click on a horse to inspect its statistics.
+  Only plugin-issued Horse Record Books work, and the physical book is not consumed.
+
+- 📊 **/horse stats**
+  Opens a virtual book containing the statistics of the horse the player is currently riding.
+  The command can only be used while mounted on a horse.
 
 - 🛠 **/horsecreate [health] [speed] [jump] [gender] [name] [trait]**  
   Administrator command to generate a custom horse item with your own stats, name, and optional **specific trait**.  

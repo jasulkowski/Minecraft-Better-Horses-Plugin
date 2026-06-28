@@ -27,6 +27,23 @@ neutering:
       enabled: false
       data: 10001
 
+# Physical glowing book used to inspect a selected horse. The virtual book
+# contains one statistics page and one special-abilities page.
+statistics:
+  book:
+    # Display name of the plugin-issued inspection book.
+    name: "&6Horse Record Book"
+
+    # Price charged by a Vault-compatible economy when using /horse book.
+    # Set to 0 to give the book for free and allow use without Vault.
+    price: 0.0
+
+    # Optional resource-pack model. Ordinary books never open horse statistics;
+    # the plugin identifies its own item through PDC.
+    custom-model:
+      enabled: false
+      data: 10002
+
 # Extensive debugging for command flow and horse item metadata inspection
 debug:
   # When enabled, detailed BetterHorses debug logs are written to console

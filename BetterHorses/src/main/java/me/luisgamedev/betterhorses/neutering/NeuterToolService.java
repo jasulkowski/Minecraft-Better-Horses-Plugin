@@ -78,6 +78,7 @@ public final class NeuterToolService {
         ItemMeta meta = tool.getItemMeta();
 
         meta.setDisplayName(plugin.getLang().parseToString(viewer, settings.displayName()));
+        meta.setEnchantmentGlintOverride(true);
         settings.customModelData().ifPresent(meta::setCustomModelData);
 
         PersistentDataContainer data = meta.getPersistentDataContainer();

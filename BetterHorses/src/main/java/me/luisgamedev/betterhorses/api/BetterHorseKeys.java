@@ -22,6 +22,7 @@ public final class BetterHorseKeys {
     public static final NamespacedKey GROWTH_STAGE = key("growth_stage");
     public static final NamespacedKey MOUNT_TYPE = key("mount_type");
     public static final NamespacedKey TRAIT = key("trait");
+    public static final NamespacedKey OTHER_ABILITIES = key("other_abilities");
     public static final NamespacedKey NEUTERED = key("neutered");
     public static final NamespacedKey HORSE_ID = key("horse_id");
     public static final NamespacedKey NEUTERED_HORSE_ID = key("neutered_horse_id");

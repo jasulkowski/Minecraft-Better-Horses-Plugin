@@ -171,6 +171,7 @@ public class BetterHorsesAPI {
         String armorData = data.get(BetterHorseKeys.ARMOR_DATA, PersistentDataType.STRING);
         String customName = data.get(BetterHorseKeys.NAME, PersistentDataType.STRING);
         String trait = data.get(BetterHorseKeys.TRAIT, PersistentDataType.STRING);
+        String otherAbilities = data.get(BetterHorseKeys.OTHER_ABILITIES, PersistentDataType.STRING);
         HorseIdentity.migrateLegacyNeuteredItem(data);
         String horseId = HorseIdentity.ensureHorseId(data);
         boolean isNeutered = HorseIdentity.isNeutered(data);
@@ -254,6 +255,9 @@ public class BetterHorsesAPI {
         if (trait != null && !trait.isBlank()) {
             horseData.set(BetterHorseKeys.TRAIT, PersistentDataType.STRING, trait);
         }
+        if (otherAbilities != null && !otherAbilities.isBlank()) {
+            horseData.set(BetterHorseKeys.OTHER_ABILITIES, PersistentDataType.STRING, otherAbilities);
+        }
         if (isNeutered) {
             HorseIdentity.markNeutered(horseData);
         }
@@ -287,6 +291,22 @@ public class BetterHorsesAPI {
     }
 
     public static @Nullable ItemStack toItem(@Nonnull AbstractHorse horse, @Nullable Player ownerOverride) {
+        return createEntityItem(horse, ownerOverride, true);
+    }
+
+    /**
+     * Creates a read-only preview item containing the same lore as a despawned
+     * horse item without cancelling temporary abilities or removing the horse.
+     */
+    public static @Nullable ItemStack toPreviewItem(@Nonnull AbstractHorse horse, @Nullable Player ownerOverride) {
+        return createEntityItem(horse, ownerOverride, false);
+    }
+
+    private static @Nullable ItemStack createEntityItem(
+            @Nonnull AbstractHorse horse,
+            @Nullable Player ownerOverride,
+            boolean normalizeTemporaryAbilities
+    ) {
         BetterHorses plugin = BetterHorses.getInstance();
         LanguageManager lang = plugin.getLang();
         PersistentDataContainer data = horse.getPersistentDataContainer();
@@ -311,6 +331,7 @@ public class BetterHorsesAPI {
         }
 
         String trait = data.has(traitKey, PersistentDataType.STRING) ? data.get(traitKey, PersistentDataType.STRING) : null;
+        String otherAbilities = data.get(BetterHorseKeys.OTHER_ABILITIES, PersistentDataType.STRING);
         String horseId = HorseIdentity.ensureHorseId(data);
         boolean isNeutered = HorseIdentity.isNeutered(data);
         Long cooldown = data.has(cooldownKey, PersistentDataType.LONG) ? data.get(cooldownKey, PersistentDataType.LONG) : null;
@@ -324,12 +345,16 @@ public class BetterHorsesAPI {
 
         String genderSymbol = gender.equalsIgnoreCase("male") ? lang.getRaw(ownerOverride, "messages.gender-male") : gender.equalsIgnoreCase("female") ? lang.getRaw(ownerOverride, "messages.gender-female") : "?";
 
-        TraitRegistry.revertDashBoostIfActive(horse);
+        if (normalizeTemporaryAbilities) {
+            TraitRegistry.revertDashBoostIfActive(horse);
+        }
         TrainingManager.ensureBaseStats(horse);
 
         double maxHealth = horse.getAttribute(AttributeResolver.generic("MAX_HEALTH")).getBaseValue();
         double currentHealth = horse.getHealth();
-        double speed = horse.getAttribute(AttributeResolver.generic("MOVEMENT_SPEED")).getBaseValue();
+        double speed = normalizeTemporaryAbilities
+                ? horse.getAttribute(AttributeResolver.generic("MOVEMENT_SPEED")).getBaseValue()
+                : TraitRegistry.getUnboostedMovementSpeed(horse);
         AttributeInstance jumpAttr = horse.getAttribute(Attribute.valueOf("HORSE_JUMP_STRENGTH"));
         double jump = jumpAttr != null ? jumpAttr.getBaseValue() : 0.0;
 
@@ -393,6 +418,9 @@ public class BetterHorsesAPI {
         itemData.set(BetterHorseKeys.MOUNT_TYPE, PersistentDataType.STRING, mountType.getEntityType().name());
         itemData.set(BetterHorseKeys.HORSE_ID, PersistentDataType.STRING, horseId);
         if (trait != null) itemData.set(traitKey, PersistentDataType.STRING, trait.toLowerCase());
+        if (otherAbilities != null && !otherAbilities.isBlank()) {
+            itemData.set(BetterHorseKeys.OTHER_ABILITIES, PersistentDataType.STRING, otherAbilities);
+        }
         if (isNeutered) HorseIdentity.markNeutered(itemData);
         if (cooldown != null) itemData.set(BetterHorseKeys.COOLDOWN, PersistentDataType.LONG, cooldown);
         if (saddle != null) itemData.set(BetterHorseKeys.SADDLE, PersistentDataType.STRING, saddle.getType().name());

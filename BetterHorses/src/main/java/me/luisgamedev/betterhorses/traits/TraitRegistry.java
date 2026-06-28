@@ -173,6 +173,18 @@ public class TraitRegistry {
         dashBoostTasks.put(horse.getUniqueId(), task);
     }
 
+    /**
+     * Returns the permanent movement speed while preserving an active temporary
+     * Dash Boost. This is used by read-only statistics previews.
+     */
+    public static double getUnboostedMovementSpeed(AbstractHorse horse) {
+        AttributeInstance speedAttr = horse.getAttribute(AttributeResolver.generic("MOVEMENT_SPEED"));
+        if (speedAttr == null) {
+            return 0.0D;
+        }
+        return dashBoostOriginalSpeeds.getOrDefault(horse.getUniqueId(), speedAttr.getBaseValue());
+    }
+
     public static void revertDashBoostIfActive(AbstractHorse horse) {
         if (horse == null) return;
 

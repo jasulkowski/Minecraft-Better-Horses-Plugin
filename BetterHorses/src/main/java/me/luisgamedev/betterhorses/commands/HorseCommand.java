@@ -2,18 +2,26 @@ package me.luisgamedev.betterhorses.commands;
 
 import me.luisgamedev.betterhorses.BetterHorses;
 import me.luisgamedev.betterhorses.language.LanguageManager;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 public class HorseCommand implements CommandExecutor {
 
     private final HorseNeuterCommand horseNeuterCommand;
+    private final HorseStatsCommand horseStatsCommand;
+    private final HorseBookCommand horseBookCommand;
 
-    public HorseCommand(HorseNeuterCommand horseNeuterCommand) {
+    public HorseCommand(
+            HorseNeuterCommand horseNeuterCommand,
+            HorseStatsCommand horseStatsCommand,
+            HorseBookCommand horseBookCommand
+    ) {
         this.horseNeuterCommand = horseNeuterCommand;
+        this.horseStatsCommand = horseStatsCommand;
+        this.horseBookCommand = horseBookCommand;
     }
 
     @Override
@@ -63,14 +71,23 @@ public class HorseCommand implements CommandExecutor {
                 }
                 return RespawnCommand.spawnHorseFromItem(player);
 
-            case "despawn":
+            case "stats":
                 if (!player.hasPermission("betterhorses.base")) {
-                    lang.sendFormatted(player, "messages.insufficient-permission", "%command%", "/horse despawn");
-                    plugin.debugLog("HORSE_COMMAND", "DESPAWN_PERMISSION", false,
+                    lang.sendFormatted(player, "messages.insufficient-permission", "%command%", "/horse stats");
+                    plugin.debugLog("HORSE_COMMAND", "STATS_PERMISSION", false,
                             "Player " + player.getName() + " lacks betterhorses.base");
                     return true;
                 }
-                return DespawnCommand.despawnHorseToItem(player);
+                return horseStatsCommand.handle(player);
+
+            case "book":
+                if (!player.hasPermission("betterhorses.book")) {
+                    lang.sendFormatted(player, "messages.insufficient-permission", "%command%", "/horse book");
+                    plugin.debugLog("HORSE_COMMAND", "BOOK_PERMISSION", false,
+                            "Player " + player.getName() + " lacks betterhorses.book");
+                    return true;
+                }
+                return horseBookCommand.handle(player);
 
             case "neuter":
                 if (!player.hasPermission("betterhorses.neuter")) {

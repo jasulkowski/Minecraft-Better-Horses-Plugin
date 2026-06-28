@@ -6,14 +6,14 @@ messages:
   horse-item-name: "<gold>%name% %gender%</gold>"
   lore-gender: "Gender: %value%"
   insufficient-permission: "You don't have permission to use %command%."
-  horse-usage: "Usage: /horse <spawn|despawn|neuter|reload|info*>"
+  horse-usage: "Usage: /horse <spawn|stats|book|neuter|reload|info*>"
   already-castrated: "This horse is already castrated."
   successfully-castrated: "You castrated %horse%. It can no longer breed."
   neutered-cannot-breed: "This horse is castrated and cannot breed."
   horse-respawned: "%mount% respawned with stored stats."
   invalid-horse-data: "This item does not contain valid %mount% data."
   not-horse-owner: "You are not the owner of this %mount%."
-  unknown-subcommand: "Unknown subcommand. Use /horse <spawn|despawn|neuter|reload>"
+  unknown-subcommand: "Unknown subcommand. Use /horse <spawn|stats|book|neuter|reload>"
   only-players: "Only players can use this command."
   horsecreate-usage: "Usage: /horsecreate <health> <speed> <jump> [gender] [name] [trait] [growth] [mounttype] [neutered]"
   traits-disabled: "Traits are disabled in the config."
@@ -21,11 +21,8 @@ messages:
   invalid-mount-type: "Invalid mount type. Available types: %types%."
   mount-type-disabled: "This mount type is disabled in the config."
   invalid-number-format: "Invalid number format."
-  horse-despawned: "Your %mount% has been successfully despawned."
   invalid-item: "You must hold a valid horse item in your main hand."
-  invalid-vehicle: "You must ride a horse to despawn it."
   cant-spawn: "You can't spawn your horse here."
-  cant-despawn: "You can't despawn your horse here."
   config-reloaded: "Configuration reloaded successfully."
   trait-line: "Trait: %trait%"
   gender-male: "♂"
@@ -45,6 +42,27 @@ messages:
     not-enough-money: "You need %price% to buy veterinary shears."
     payment-failed: "The payment could not be completed. No item was issued."
     horse-not-tamed: "This horse must be tamed before it can be castrated."
+
+  statistics:
+    book-received: "You received a horse record book. Price: %price%."
+    book-lore:
+      - "&7Sneak + Right-click a horse"
+      - "&7to inspect stats and abilities"
+    economy-unavailable: "The horse record book has a price, but no Vault economy provider is available."
+    not-enough-money: "You need %price% to buy a horse record book."
+    payment-failed: "The payment could not be completed. No book was issued."
+    not-riding: "You must be riding a horse to use /horse stats."
+    invalid-horse: "Statistics are unavailable for this mount."
+    virtual-title: "%horse%"
+    virtual-author: "BetterHorses"
+    virtual-header: "&6%horse%"
+    abilities-header: "&6Special Abilities"
+    passive-label: "&2Passive ability:"
+    active-label: "&cActive ability (F):"
+    active-hint: "&8Press F while riding to activate it."
+    other-label: "&bOther abilities:"
+    other-ability-line: "&0• %ability%"
+    abilities-none: "&8None"
   lore-growth: "Growth: %value%0%"
   cooldown-message-bossbar: "&e%value% &7Cooldown"
   cooldown-message-hotbar: "&e%value% &7Cooldown: &f%remaining%s"
@@ -138,6 +156,16 @@ traits:
 
   revenantcurse: "Revenant Curse"
   revenantcurse-message: "The curse has been activated. Attackers will suffer."
+
+# Display names for permanent abilities that may later be purchased from a stable master.
+# The API stores their keys in the horse PDC under "other_abilities".
+abilities:
+  stable_speed: "Stable Speed Training"
+  tandem_seat: "Tandem Riding"
+  sure_footed: "Sure-Footed"
+  cargo_bags: "Cargo Bags"
+  strong_swimmer: "Strong Swimmer"
+  horn_mastery: "Horn Mastery"
 
 training-lore:
   title: "&6Training"

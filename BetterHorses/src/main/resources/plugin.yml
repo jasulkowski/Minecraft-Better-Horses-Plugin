@@ -10,9 +10,8 @@ libraries:
 
 commands:
   horse:
-    description: Manage horse actions like spawn and despawn
-    usage: /<command> <spawn|despawn|neuter>
-    permission: betterhorses.base
+    description: Manage BetterHorses mounts and tools
+    usage: /<command> <spawn|stats|book|neuter|reload>
 
   horsecreate:
     description: Create a custom horse item
@@ -21,7 +20,11 @@ commands:
 
 permissions:
   betterhorses.base:
-    description: Allows using the /horse spawn|despawn command
+    description: Allows using the /horse spawn and /horse stats commands
+    default: true
+
+  betterhorses.book:
+    description: Allows obtaining and using the horse record book
     default: true
 
   betterhorses.neuter:
@@ -38,7 +41,6 @@ permissions:
 
   betterhorses.bypass:
     description: Allows riding horses of other players
-
 
   betterhorses.summon:
     description: Allows binding and using goat horns to call mounts

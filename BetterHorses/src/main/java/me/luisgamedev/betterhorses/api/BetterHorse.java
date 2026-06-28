@@ -1,5 +1,6 @@
 package me.luisgamedev.betterhorses.api;
 
+import me.luisgamedev.betterhorses.abilities.HorseAbilityStorage;
 import me.luisgamedev.betterhorses.utils.AttributeResolver;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
@@ -8,6 +9,8 @@ import org.bukkit.entity.AbstractHorse;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -65,6 +68,30 @@ public final class BetterHorse {
         } else {
             data.set(BetterHorseKeys.TRAIT, PersistentDataType.STRING, trait.toLowerCase());
         }
+    }
+
+    /**
+     * Returns permanent non-trait abilities, prepared for future stable-master
+     * upgrades such as tandem riding or special movement perks.
+     */
+    public List<String> getOtherAbilities() {
+        return HorseAbilityStorage.read(handle.getPersistentDataContainer());
+    }
+
+    public void setOtherAbilities(Collection<String> abilityKeys) {
+        HorseAbilityStorage.write(handle.getPersistentDataContainer(), abilityKeys);
+    }
+
+    public boolean addOtherAbility(String abilityKey) {
+        return HorseAbilityStorage.add(handle.getPersistentDataContainer(), abilityKey);
+    }
+
+    public boolean removeOtherAbility(String abilityKey) {
+        return HorseAbilityStorage.remove(handle.getPersistentDataContainer(), abilityKey);
+    }
+
+    public boolean hasOtherAbility(String abilityKey) {
+        return HorseAbilityStorage.contains(handle.getPersistentDataContainer(), abilityKey);
     }
 
     public Optional<Integer> getGrowthStage() {

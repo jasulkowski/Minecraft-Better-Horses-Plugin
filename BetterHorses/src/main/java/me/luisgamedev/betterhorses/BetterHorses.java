@@ -6,6 +6,8 @@ import me.luisgamedev.betterhorses.commands.CustomHorseCommand;
 import me.luisgamedev.betterhorses.commands.HorseCommand;
 import me.luisgamedev.betterhorses.commands.HorseCommandCompleter;
 import me.luisgamedev.betterhorses.commands.HorseNeuterCommand;
+import me.luisgamedev.betterhorses.commands.HorseBookCommand;
+import me.luisgamedev.betterhorses.commands.HorseStatsCommand;
 import me.luisgamedev.betterhorses.commands.HorseCreateTabCompleter;
 import me.luisgamedev.betterhorses.growing.HorseGrowthManager;
 import me.luisgamedev.betterhorses.language.LanguageManager;
@@ -22,6 +24,8 @@ import me.luisgamedev.betterhorses.summon.HorseSummonRepository;
 import me.luisgamedev.betterhorses.summon.HorseSummonService;
 import me.luisgamedev.betterhorses.summon.HorseSummonSettings;
 import me.luisgamedev.betterhorses.summon.HorseSummonTrackingTask;
+import me.luisgamedev.betterhorses.statistics.HorseStatsBookListener;
+import me.luisgamedev.betterhorses.statistics.HorseStatsBookService;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -49,6 +53,7 @@ public class BetterHorses extends JavaPlugin {
     private BukkitAudiences audiences;
     private HorseSummonRepository horseSummonRepository;
     private NeuterToolService neuterToolService;
+    private HorseStatsBookService horseStatsBookService;
 
 
     @Override
@@ -78,14 +83,20 @@ public class BetterHorses extends JavaPlugin {
         languageManager = new LanguageManager(this, audiences);
         horseSummonRepository = new HorseSummonRepository(this);
         horseSummonRepository.initializeAsync();
-        neuterToolService = new NeuterToolService(this, initializeEconomyProvider());
+        EconomyProvider economyProvider = initializeEconomyProvider();
+        neuterToolService = new NeuterToolService(this, economyProvider);
+        horseStatsBookService = new HorseStatsBookService(this, economyProvider);
 
         registerListeners();
 
         PluginCommand horseCommand = getCommand("horse");
         if (horseCommand != null) {
             horseCommand.setTabCompleter(new HorseCommandCompleter());
-            horseCommand.setExecutor(new HorseCommand(new HorseNeuterCommand(neuterToolService)));
+            horseCommand.setExecutor(new HorseCommand(
+                    new HorseNeuterCommand(neuterToolService),
+                    new HorseStatsCommand(horseStatsBookService),
+                    new HorseBookCommand(horseStatsBookService)
+            ));
             applyHorseCommandAliases();
         }
         getCommand("horsecreate").setExecutor(new CustomHorseCommand());
@@ -280,6 +291,7 @@ public class BetterHorses extends JavaPlugin {
         pluginManager.registerEvents(new HorseItemBlockerListener(), this);
         pluginManager.registerEvents(new HorseMountListener(), this);
         pluginManager.registerEvents(new NeuterToolListener(neuterToolService), this);
+        pluginManager.registerEvents(new HorseStatsBookListener(horseStatsBookService), this);
 
         if (config.getBoolean("horse-summon.enabled", true)) {
             HorseSummonService summonService = new HorseSummonService(this, horseSummonRepository);
